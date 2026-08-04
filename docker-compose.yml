@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: beni-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: beni
+      POSTGRES_PASSWORD: beni
+      POSTGRES_DB: beni
+    ports:
+      - "5433:5432"
+    volumes:
+      - beni_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U beni -d beni"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Busca opcional. Sem este serviço o Beni funciona igual, com busca literal
+  # no Postgres. Suba com: docker compose --profile search up -d
+  search:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: beni-search
+    profiles: [search]
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - beni_esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beni-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://beni:beni@db:5432/beni?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:-troque-esse-segredo-em-producao-0123456789abcdef}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@beni.app}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-beni1234}
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+      # aponte para o seu cluster; vazio = busca literal no Postgres
+      ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-}
+      ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}
+      ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-}
+      ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-}
+      SEARCH_INDEX_PREFIX: ${SEARCH_INDEX_PREFIX:-beni}
+    ports:
+      - "3000:3000"
+
+volumes:
+  beni_pgdata:
+  beni_esdata:

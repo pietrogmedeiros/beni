@@ -1,0 +1,36 @@
+appId: app.beni.desktop
+productName: Beni
+copyright: Beni
+
+directories:
+  buildResources: build
+  output: dist
+
+files:
+  - src/**
+  - package.json
+
+mac:
+  category: public.app-category.productivity
+  icon: build/icon.png
+  target:
+    - target: dmg
+      arch: [universal]
+  darkModeSupport: true
+  # sem conta de desenvolvedor: assinatura ad-hoc, sem notarização
+  identity: null
+  extendInfo:
+    NSHumanReadableCopyright: Beni
+    LSApplicationCategoryType: public.app-category.productivity
+
+dmg:
+  title: Beni
+  artifactName: Beni-${version}-mac.dmg
+  contents:
+    - x: 140
+      y: 190
+      type: file
+    - x: 400
+      y: 190
+      type: link
+      path: /Applications
