@@ -29,7 +29,8 @@ import {
   type SharedTaskThread,
 } from "@/server/actions/share";
 import { PRIORITY_META, type PriorityValue } from "@/lib/constants";
-import { cn, formatDate, formatRelative, initials, readableOn } from "@/lib/utils";
+import { RelativeTime } from "@/components/relative-time";
+import { cn, formatDate, initials, readableOn } from "@/lib/utils";
 
 export function SharedGanttScreen({
   token,
@@ -44,7 +45,7 @@ export function SharedGanttScreen({
 
   return (
     <TooltipProvider delay={300}>
-      <div className="flex h-app flex-col">
+      <div className="flex h-svh flex-col">
         <header className="flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-2.5">
           <BeniLogo showText={false} />
           <span
@@ -272,7 +273,7 @@ function ThreadBody({
                         </span>
                       )}
                       <span className="text-[11px] text-muted-foreground">
-                        {formatRelative(c.createdAt)}
+                        <RelativeTime date={c.createdAt} />
                       </span>
                     </p>
                     <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground/90">

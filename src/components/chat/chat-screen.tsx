@@ -66,7 +66,8 @@ import {
   type ChannelSummary,
   type MessageDTO,
 } from "@/server/actions/chat";
-import { cn, formatRelative, initials, readableOn } from "@/lib/utils";
+import { RelativeTime } from "@/components/relative-time";
+import { cn, initials, readableOn } from "@/lib/utils";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -648,7 +649,7 @@ function MessageRow({
             {message.replyCount === 1 ? "resposta" : "respostas"}
             {message.lastReplyAt && (
               <span className="font-normal text-muted-foreground">
-                · {formatRelative(message.lastReplyAt)}
+                · <RelativeTime date={message.lastReplyAt} />
               </span>
             )}
           </button>

@@ -44,7 +44,8 @@ import {
   syncGithubLinks,
   unlinkGithubItem,
 } from "@/server/actions/github";
-import { cn, formatRelative, slugify } from "@/lib/utils";
+import { RelativeTime } from "@/components/relative-time";
+import { cn, slugify } from "@/lib/utils";
 
 export type GithubLinkDTO = {
   id: string;
@@ -242,7 +243,7 @@ export function GithubPanel({
             );
           })}
           <p className="text-[11px] text-muted-foreground">
-            Sincronizado {formatRelative(links[0].syncedAt)}
+            Sincronizado <RelativeTime date={links[0].syncedAt} />
           </p>
         </div>
       )}

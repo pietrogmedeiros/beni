@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Menu } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { MobileTopBar } from "@/components/app-shell/mobile-topbar";
-import { cn } from "@/lib/utils";
-import { Sidebar } from "@/components/app-shell/sidebar";
+import { Button } from "@/components/ui/button";
+import { TopBar } from "@/components/app-shell/top-bar";
+import { IconRail, sectionForPath } from "@/components/app-shell/icon-rail";
+import { NavPanel } from "@/components/app-shell/nav-panel";
 import { CommandPalette } from "@/components/app-shell/command-palette";
 import {
   AppProvider,
@@ -19,9 +21,11 @@ import {
   type NewTaskDefaults,
 } from "@/components/task/new-task-dialog";
 import { TaskSheet } from "@/components/task/task-sheet";
+import { unreadTotals } from "@/server/actions/chat";
+import { cn } from "@/lib/utils";
 import type { UserDTO } from "@/server/queries";
 
-const STORAGE_KEY = "beni:sidebar-collapsed";
+const STORAGE_KEY = "beni:panel-collapsed";
 
 export function AppShell({
   user,
@@ -29,6 +33,7 @@ export function AppShell({
   projects,
   members,
   tags,
+  desktop,
   children,
 }: {
   user: UserDTO;
@@ -36,6 +41,7 @@ export function AppShell({
   projects: WorkspaceProject[];
   members: WorkspaceMember[];
   tags: { id: string; name: string; color: string }[];
+  desktop?: boolean;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -47,14 +53,14 @@ export function AppShell({
   }>({ open: false, defaults: {} });
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unread, setUnread] = useState({ unread: 0, mentions: 0 });
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
 
-  // lê a preferência salva só no cliente (evita divergência de hidratação)
   useEffect(() => {
-    // sincronização com fonte externa (URL, localStorage, servidor) — intencional
+    // sincronização com fonte externa (localStorage) — intencional
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(localStorage.getItem(STORAGE_KEY) === "1");
   }, []);
@@ -63,21 +69,35 @@ export function AppShell({
   useEffect(() => {
     const taskParam = searchParams.get("task");
     if (taskParam) {
-      // sincronização com fonte externa (URL, localStorage, servidor) — intencional
+      // sincronização com fonte externa (URL) — intencional
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpenTaskId(taskParam);
       router.replace(pathname);
     }
   }, [searchParams, pathname, router]);
 
-  // fecha a gaveta ao navegar para outra rota
   useEffect(() => {
-    // sincronização com fonte externa (URL) — intencional
+    // fecha a gaveta ao navegar
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileOpen(false);
   }, [pathname]);
 
-  const toggleSidebar = useCallback(() => {
+  // contador de não lidas do chat, alimentado pelo mesmo fluxo SSE
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      unreadTotals().then((t) => alive && setUnread(t));
+    };
+    load();
+    const source = new EventSource("/api/chat/stream");
+    source.onmessage = () => load();
+    return () => {
+      alive = false;
+      source.close();
+    };
+  }, []);
+
+  const togglePanel = useCallback(() => {
     setCollapsed((c) => {
       localStorage.setItem(STORAGE_KEY, c ? "0" : "1");
       return !c;
@@ -109,12 +129,16 @@ export function AppShell({
       }
       if (e.key === "[" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        toggleSidebar();
+        togglePanel();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [openNewTask, toggleSidebar]);
+  }, [openNewTask, togglePanel]);
+
+  // no Chat, a própria tela já traz a lista de conversas — o painel genérico
+  // seria uma terceira coluna redundante
+  const hidePanel = sectionForPath(pathname) === "chat";
 
   const value: AppContextValue = {
     user,
@@ -131,50 +155,67 @@ export function AppShell({
   return (
     <TooltipProvider delay={300}>
       <AppProvider value={value}>
-        <div className="flex h-app overflow-hidden">
-          {/* fundo escuro da gaveta em telas pequenas */}
-          {mobileOpen && (
-            <button
-              type="button"
-              aria-label="Fechar menu"
-              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-              onClick={() => setMobileOpen(false)}
-            />
-          )}
+        <div className="flex h-svh flex-col overflow-hidden">
+          <TopBar
+            user={user}
+            workspace={workspace}
+            onOpenSearch={() => setSearchOpen(true)}
+            onNewTask={() => openNewTask()}
+            desktop={desktop}
+          />
 
-          <div
-            className={cn(
-              "fixed inset-y-0 left-0 z-50 transition-transform duration-200",
-              "lg:relative lg:z-auto lg:translate-x-0 lg:transition-none",
-              mobileOpen ? "translate-x-0" : "-translate-x-full",
+          <div className="flex min-h-0 flex-1">
+            {/* gaveta no mobile */}
+            {mobileOpen && (
+              <button
+                type="button"
+                aria-label="Fechar menu"
+                className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+                onClick={() => setMobileOpen(false)}
+              />
             )}
-          >
-            <Sidebar
-              user={user}
-              workspace={workspace}
-              projects={projects}
-              collapsed={collapsed && !mobileOpen}
-              onToggle={toggleSidebar}
-              onOpenSearch={() => {
-                setMobileOpen(false);
-                setSearchOpen(true);
-              }}
-              onNewProject={() => {
-                setMobileOpen(false);
-                setProjectDialog(true);
-              }}
-              onNavigate={() => setMobileOpen(false)}
-            />
-          </div>
 
-          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-            <MobileTopBar
-              onMenu={() => setMobileOpen(true)}
-              onSearch={() => setSearchOpen(true)}
-              onNewTask={() => openNewTask()}
-            />
-            {children}
-          </main>
+            <div
+              className={cn(
+                "fixed inset-y-0 left-0 z-50 flex transition-transform duration-200",
+                "lg:relative lg:z-auto lg:translate-x-0 lg:transition-none",
+                mobileOpen ? "translate-x-0" : "-translate-x-full",
+              )}
+            >
+              <IconRail
+                unread={unread}
+                onNavigate={() => setMobileOpen(false)}
+              />
+              {(!collapsed || mobileOpen) && !hidePanel && (
+                <NavPanel
+                  user={user}
+                  projects={projects}
+                  onNewProject={() => {
+                    setMobileOpen(false);
+                    setProjectDialog(true);
+                  }}
+                  onNavigate={() => setMobileOpen(false)}
+                  onCollapse={togglePanel}
+                />
+              )}
+            </div>
+
+            <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              {/* botão do menu em telas pequenas */}
+              <div className="flex h-11 shrink-0 items-center border-b px-2 lg:hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-9"
+                  onClick={() => setMobileOpen(true)}
+                  aria-label="Abrir menu"
+                >
+                  <Menu className="size-5" />
+                </Button>
+              </div>
+              {children}
+            </main>
+          </div>
         </div>
 
         <CommandPalette
@@ -191,9 +232,7 @@ export function AppShell({
         <NewTaskDialog
           open={taskDialog.open}
           defaults={taskDialog.defaults}
-          onOpenChange={(open) =>
-            setTaskDialog((prev) => ({ ...prev, open }))
-          }
+          onOpenChange={(open) => setTaskDialog((prev) => ({ ...prev, open }))}
         />
 
         <TaskSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />

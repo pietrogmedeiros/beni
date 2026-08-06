@@ -17,7 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cancelApproval, requestApproval } from "@/server/actions/approvals";
-import { cn, formatDateTime, formatRelative } from "@/lib/utils";
+import { RelativeTime } from "@/components/relative-time";
+import { cn, formatDateTime } from "@/lib/utils";
 
 export type ApprovalDTO = {
   id: string;
@@ -77,7 +78,7 @@ export function ApprovalPanel({
             Aguardando aprovação
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Solicitada {formatRelative(openRequest.createdAt)}
+            Solicitada <RelativeTime date={openRequest.createdAt} />
             {openRequest.requestedBy && ` por ${openRequest.requestedBy.name}`}
             {openRequest.expiresAt &&
               ` · expira em ${formatDateTime(openRequest.expiresAt)}`}

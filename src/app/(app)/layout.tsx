@@ -1,8 +1,13 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspaceContext } from "@/server/queries";
 import { AppShell } from "@/components/app-shell/app-shell";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
+  const isDesktop = (await headers())
+    .get("user-agent")
+    ?.includes("BeniDesktop");
+
   let ctx;
   try {
     ctx = await getWorkspaceContext();
@@ -20,6 +25,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       projects={ctx.projects}
       members={ctx.members}
       tags={ctx.tags}
+      desktop={isDesktop}
     >
       {children}
     </AppShell>

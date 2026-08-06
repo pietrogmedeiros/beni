@@ -22,8 +22,9 @@ import {
   StatusDot,
   TypeIcon,
 } from "@/components/task/task-badges";
+import { RelativeTime } from "@/components/relative-time";
 import { useApp } from "@/components/app-shell/app-context";
-import { isOverdue, formatRelative } from "@/lib/utils";
+import { isOverdue } from "@/lib/utils";
 import type { TaskDTO } from "@/server/queries";
 
 type ProjectSummary = {
@@ -246,7 +247,7 @@ export function HomeView({
                         )}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        {a.project.name} · {formatRelative(a.createdAt)}
+                        {a.project.name} · <RelativeTime date={a.createdAt} />
                       </p>
                     </div>
                   </li>

@@ -24,7 +24,8 @@ import {
   type PublicApproval,
 } from "@/server/actions/approvals";
 import { PRIORITY_META, type PriorityValue } from "@/lib/constants";
-import { cn, formatFullDate, formatRelative } from "@/lib/utils";
+import { RelativeTime } from "@/components/relative-time";
+import { cn, formatFullDate } from "@/lib/utils";
 
 export function ApprovalScreen({
   token,
@@ -101,7 +102,7 @@ export function ApprovalScreen({
                 <strong className="font-medium text-foreground">
                   {approval.requestedBy.name}
                 </strong>{" "}
-                pediu sua aprovação {formatRelative(approval.createdAt)}.
+                pediu sua aprovação <RelativeTime date={approval.createdAt} />.
               </p>
             )}
 

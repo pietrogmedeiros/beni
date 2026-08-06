@@ -55,8 +55,6 @@
 
 :root {
   --radius: 0.6rem;
-  /* altura da barra de título do app de macOS (0 no navegador) */
-  --titlebar-h: 0px;
 
   --background: oklch(0.995 0.002 260);
   --foreground: oklch(0.21 0.02 265);
@@ -153,14 +151,6 @@
   --sidebar-ring: oklch(0.82 0.16 88);
 }
 
-html[data-desktop="true"] {
-  --titlebar-h: 38px;
-}
-
-html[data-desktop="true"] body {
-  padding-top: var(--titlebar-h);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -176,11 +166,6 @@ html[data-desktop="true"] body {
 }
 
 @layer utilities {
-  /* altura total menos a barra de título do desktop */
-  .h-app {
-    height: calc(100svh - var(--titlebar-h));
-  }
-
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

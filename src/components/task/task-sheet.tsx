@@ -75,7 +75,8 @@ import {
   updateTask,
 } from "@/server/actions/tasks";
 import type { TaskDetail } from "@/server/queries";
-import { cn, formatRelative } from "@/lib/utils";
+import { RelativeTime } from "@/components/relative-time";
+import { cn } from "@/lib/utils";
 
 export function TaskSheet({
   taskId,
@@ -432,7 +433,7 @@ function TaskSheetBody({
                     <div className="flex items-baseline gap-2">
                       <span className="text-sm font-medium">{c.author.name}</span>
                       <span className="text-[11px] text-muted-foreground">
-                        {formatRelative(c.createdAt)}
+                        <RelativeTime date={c.createdAt} />
                       </span>
                     </div>
                     <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground/90">
@@ -545,7 +546,7 @@ function TaskSheetBody({
                       {a.user?.name ?? "Alguém"}
                     </span>{" "}
                     {describeActivity(a.action, a.meta)}{" "}
-                    <span className="text-xs">· {formatRelative(a.createdAt)}</span>
+                    <span className="text-xs">· <RelativeTime date={a.createdAt} /></span>
                   </p>
                 </div>
               ))}
@@ -664,9 +665,9 @@ function TaskSheetBody({
           </Field>
 
           <p className="mt-4 px-2 text-[11px] leading-relaxed text-muted-foreground">
-            Criada {formatRelative(task.createdAt)}
+            Criada <RelativeTime date={task.createdAt} />
             <br />
-            Atualizada {formatRelative(task.updatedAt)}
+            Atualizada <RelativeTime date={task.updatedAt} />
           </p>
         </div>
       </div>
