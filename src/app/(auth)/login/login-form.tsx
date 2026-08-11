@@ -18,7 +18,7 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
   const [state, formAction] = useActionState<AuthState, FormData>(
     loginAction,
     undefined,
@@ -36,7 +36,7 @@ export function LoginForm({ next }: { next: string }) {
           type="email"
           autoComplete="email"
           placeholder="voce@empresa.com"
-          defaultValue="admin@beni.app"
+          defaultValue={demo ? "admin@beni.app" : undefined}
           required
         />
       </div>
@@ -49,7 +49,7 @@ export function LoginForm({ next }: { next: string }) {
           type="password"
           autoComplete="current-password"
           placeholder="••••••••"
-          defaultValue="beni1234"
+          defaultValue={demo ? "beni1234" : undefined}
           required
         />
       </div>
@@ -63,9 +63,11 @@ export function LoginForm({ next }: { next: string }) {
 
       <SubmitButton />
 
-      <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-        Demo: <strong>admin@beni.app</strong> / <strong>beni1234</strong>
-      </p>
+      {demo && (
+        <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+          Demo: <strong>admin@beni.app</strong> / <strong>beni1234</strong>
+        </p>
+      )}
     </form>
   );
 }

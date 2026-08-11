@@ -11,7 +11,7 @@ FROM base AS deps
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci
 
 # ————— build —————
 FROM base AS builder
@@ -22,15 +22,22 @@ ARG BASE_PATH=""
 ENV BASE_PATH=${BASE_PATH}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# `npm run build` roda `prisma generate` e depois `next build`
-RUN npm run build
+# A checagem de tipos é feita antes do push (`tsc --noEmit`), não aqui: ela
+# custava 102s de cada implantação sem acrescentar informação nova.
+ENV SKIP_TYPECHECK=1
+# O cache do Turbopack sobrevive entre implantações e corta o tempo de
+# compilação pela metade — só o que mudou é recompilado.
+RUN --mount=type=cache,target=/app/.next/cache npm run build
 
 # ————— ferramentas de runtime: só o necessário p/ migrar e semear —————
 FROM base AS tools
 WORKDIR /tools
 COPY package.json ./source-package.json
 COPY scripts/tools-package.mjs ./tools-package.mjs
-RUN node tools-package.mjs source-package.json package.json \
+# Tentei podar @prisma/studio-core e @prisma/dev daqui (60 MB que nunca são
+# abertos, já que só rodamos migrations): o CLI do Prisma exige o studio-core
+# logo no carregamento e quebra com MODULE_NOT_FOUND. Ficam.
+RUN --mount=type=cache,target=/root/.npm node tools-package.mjs source-package.json package.json \
   && npm install --omit=dev --no-audit --no-fund
 
 # ————— runtime —————

@@ -55,6 +55,8 @@ services:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
+      # a tela de login só oferece a conta de demonstração quando o seed roda
+      SEED_ON_START: ${SEED_ON_START:-true}
       # aponte para o seu cluster; vazio = busca literal no Postgres
       ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-}
       ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}

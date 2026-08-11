@@ -15,6 +15,10 @@ const basePath = (process.env.BASE_PATH ?? "").replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
   basePath,
+  // Os tipos são verificados antes de subir o código (`npx tsc --noEmit`).
+  // Repetir isso dentro do Docker acrescentava 102s a cada implantação para
+  // reprovar exatamente o que já teria sido reprovado aqui.
+  typescript: { ignoreBuildErrors: process.env.SKIP_TYPECHECK === "1" },
   // disponível para o código do cliente montar URLs à mão (EventSource, links
   // públicos), já que só `next/link` e o router aplicam o prefixo sozinhos
   env: { NEXT_PUBLIC_BASE_PATH: basePath },
