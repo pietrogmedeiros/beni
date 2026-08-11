@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { loadPublicApproval } from "@/server/actions/approvals";
+import { publicAttachments } from "@/server/actions/attachments";
 import { ApprovalScreen } from "./approval-screen";
 
 export const metadata = {
@@ -14,5 +15,15 @@ export default async function ApprovalPage({
   const approval = await loadPublicApproval(token);
   if (!approval) notFound();
 
-  return <ApprovalScreen token={token} approval={approval} />;
+  // o aprovador precisa ver o que está aprovando: fotos e vídeos entram na
+  // própria página, sem conta e sem download
+  const attachments = await publicAttachments(approval.task.id, token);
+
+  return (
+    <ApprovalScreen
+      token={token}
+      approval={approval}
+      attachments={attachments}
+    />
+  );
 }

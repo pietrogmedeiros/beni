@@ -63,10 +63,15 @@ services:
       ELASTICSEARCH_USERNAME: ${ELASTICSEARCH_USERNAME:-}
       ELASTICSEARCH_PASSWORD: ${ELASTICSEARCH_PASSWORD:-}
       SEARCH_INDEX_PREFIX: ${SEARCH_INDEX_PREFIX:-beni}
+      UPLOAD_DIR: /app/uploads
     ports:
       # BENI_PORT permite fugir de um 3000 já ocupado por outro projeto
       - "${BENI_PORT:-3000}:3000"
+    volumes:
+      # anexos sobrevivem a `docker compose up --build`
+      - beni_uploads:/app/uploads
 
 volumes:
+  beni_uploads:
   beni_pgdata:
   beni_esdata:

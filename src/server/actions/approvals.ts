@@ -128,6 +128,7 @@ export async function loadPublicApproval(token: string) {
     decidedAt: approval.decidedAt?.toISOString() ?? null,
     requestedBy: approval.requestedBy,
     task: {
+      id: approval.task.id,
       number: approval.task.number,
       title: approval.task.title,
       description: approval.task.description,

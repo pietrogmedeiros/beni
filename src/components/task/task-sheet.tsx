@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AttachmentsPanel } from "@/components/task/attachments-panel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -166,6 +167,8 @@ function TaskSheetBody({
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [comment, setComment] = useState("");
+  // a contagem vem do painel de anexos, que é quem conhece a lista
+  const [attachmentCount, setAttachmentCount] = useState(0);
   const [pending, startTransition] = useTransition();
 
   const isDone = task.statusCategory === "DONE";
@@ -348,6 +351,14 @@ function TaskSheetBody({
                   </span>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="attachments">
+                Anexos
+                {attachmentCount > 0 && (
+                  <span className="ml-1.5 rounded bg-muted px-1 text-[10px]">
+                    {attachmentCount}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="approval">
                 Aprovação
                 {approvalBadge && (
@@ -480,6 +491,14 @@ function TaskSheetBody({
             </TabsContent>
 
             {/* aprovação de stakeholder */}
+            {/* anexos */}
+            <TabsContent value="attachments" className="mt-3">
+              <AttachmentsPanel
+                taskId={task.id}
+                onCountChange={setAttachmentCount}
+              />
+            </TabsContent>
+
             <TabsContent value="approval" className="mt-3">
               <ApprovalPanel
                 taskId={task.id}

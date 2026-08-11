@@ -1,4 +1,6 @@
 "use client";
+import { AttachmentGallery } from "@/components/task/attachment-gallery";
+import type { AttachmentDTO } from "@/server/actions/attachments";
 
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -30,9 +32,11 @@ import { cn, formatFullDate } from "@/lib/utils";
 export function ApprovalScreen({
   token,
   approval,
+  attachments,
 }: {
   token: string;
   approval: PublicApproval;
+  attachments: AttachmentDTO[];
 }) {
   const [state, formAction] = useActionState<DecisionState, FormData>(
     decideApproval,
@@ -120,6 +124,15 @@ export function ApprovalScreen({
                 <p className="whitespace-pre-wrap text-sm text-foreground/90">
                   {approval.task.description}
                 </p>
+              </div>
+            )}
+
+            {attachments.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Material anexado
+                </p>
+                <AttachmentGallery attachments={attachments} />
               </div>
             )}
 

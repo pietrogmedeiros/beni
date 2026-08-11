@@ -67,6 +67,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts /app/tsconfig.json ./
 
+# Diretório dos anexos. Precisa existir e pertencer ao usuário do app antes do
+# USER nextjs; em produção monte um volume aqui, senão os arquivos somem a cada
+# implantação e os registros no banco apontam para o vazio.
+RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
+VOLUME ["/app/uploads"]
+
 COPY --chown=nextjs:nodejs docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
