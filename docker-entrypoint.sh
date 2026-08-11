@@ -74,5 +74,13 @@ if [ "${SEED_ON_START:-true}" = "true" ]; then
   npx tsx prisma/seed.ts || echo "⚠ Seed falhou (seguindo mesmo assim)"
 fi
 
+# Busca com Elasticsearch: cria o índice e indexa o que já existe. Sem isto só
+# as tarefas mexidas depois do deploy entrariam no índice, e a busca pareceria
+# quebrada justamente no acervo antigo. É idempotente — reindexar é seguro.
+if [ -n "${ELASTICSEARCH_URL:-}" ]; then
+  echo "→ Preparando a busca (${ELASTICSEARCH_URL})…"
+  npx tsx scripts/reindex.mts || echo "⚠ Busca indisponível — o app segue com a busca do Postgres"
+fi
+
 echo "→ Iniciando o Beni em http://0.0.0.0:${PORT:-3000}"
 exec "$@"

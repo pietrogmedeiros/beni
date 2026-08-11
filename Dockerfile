@@ -52,6 +52,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # CLI do Prisma + tsx, usados só pelo entrypoint (migrations e seed)
 COPY --from=tools --chown=nextjs:nodejs /tools/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/src/generated ./src/generated
+# a reindexação da busca roda pelo entrypoint e importa este módulo — ele é
+# autocontido de propósito, justamente para caber na imagem de runtime
+COPY --from=builder --chown=nextjs:nodejs /app/src/server/search-core.ts ./src/server/search-core.ts
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts /app/tsconfig.json ./

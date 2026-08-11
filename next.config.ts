@@ -26,6 +26,16 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: root,
   // O cliente do Prisma roda só no servidor — não deve ser empacotado.
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg"],
+
+  // Quem digitar só o domínio cai no app em vez de num 404: fora do basePath
+  // o Next não atende nada, então a regra precisa de `basePath: false` para
+  // enxergar a raiz de verdade.
+  async redirects() {
+    if (!basePath) return [];
+    return [
+      { source: "/", destination: basePath, permanent: false, basePath: false },
+    ];
+  },
 };
 
 export default nextConfig;
