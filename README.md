@@ -242,10 +242,17 @@ dnd-kit · Recharts · jose (JWT) · bcrypt.
    PGUSER=postgres
    PGPASSWORD=<senha do serviço>
    PGDATABASE=<banco>
+   PGSCHEMA=beni
    AUTH_SECRET=<string longa e aleatória>
    PORT=3000
    SEED_ON_START=false
    ```
+
+   **Banco compartilhado**: se a instância já hospeda outros projetos, defina
+   `PGSCHEMA=beni`. O Beni cria o schema no boot e passa a viver inteiro lá —
+   tabelas, migrations e histórico —, sem tocar no `public`. Para apagar o Beni
+   depois basta `DROP SCHEMA beni CASCADE`. Se puder criar uma base separada,
+   melhor ainda; o schema é a alternativa quando só existe uma.
 
 4. **Primeiro acesso**: com `SEED_ON_START=false` não existe usuário nenhum —
    abra `/register`, crie a sua conta e o workspace nasce junto. Com `true`,

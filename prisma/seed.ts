@@ -3,8 +3,14 @@ import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 
+const connectionString = process.env.DATABASE_URL ?? "";
+// mesmo motivo de src/lib/db.ts: o driver `pg` ignora o `?schema=` da URL
+const schema = connectionString
+  ? (new URL(connectionString).searchParams.get("schema") ?? undefined)
+  : undefined;
+
 const db = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg({ connectionString }, { schema }),
 });
 
 const DEFAULT_STATUSES = [

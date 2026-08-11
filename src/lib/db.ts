@@ -8,7 +8,12 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createClient() {
-  const adapter = new PrismaPg({ connectionString: resolveDatabaseUrl() });
+  const url = resolveDatabaseUrl();
+  // O `?schema=` da URL é convenção do Prisma; o driver `pg` o ignora. Com
+  // driver adapter é preciso dizer o schema em separado — sem isso o app
+  // escreveria no `public` mesmo apontado para um schema isolado.
+  const schema = new URL(url).searchParams.get("schema") ?? undefined;
+  const adapter = new PrismaPg({ connectionString: url }, { schema });
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],

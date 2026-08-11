@@ -13,8 +13,14 @@ import {
   searchEnabled,
 } from "../src/server/search-core";
 
+const connectionString = process.env.DATABASE_URL ?? "";
+// o driver `pg` ignora o `?schema=` da URL; ver src/lib/db.ts
+const schema = connectionString
+  ? (new URL(connectionString).searchParams.get("schema") ?? undefined)
+  : undefined;
+
 const db = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg({ connectionString }, { schema }),
 });
 
 async function main() {

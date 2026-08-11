@@ -14,10 +14,22 @@ if [ -z "${DATABASE_URL:-}" ] && [ -n "${PGHOST:-}" ]; then
     process.stdout.write(`postgresql://${user}${pass}@${e.PGHOST}:${e.PGPORT || 5432}/${db}?schema=${e.PGSCHEMA || "public"}${ssl}`);
   ')
   export DATABASE_URL
-  echo "→ Banco: ${PGUSER:-postgres}@${PGHOST}:${PGPORT:-5432}/${PGDATABASE:-postgres}"
+  echo "→ Banco: ${PGUSER:-postgres}@${PGHOST}:${PGPORT:-5432}/${PGDATABASE:-postgres} (schema ${PGSCHEMA:-public})"
 fi
 
 echo "→ Aguardando o banco de dados…"
+tries=0
+until node scripts/ensure-schema.mjs >/tmp/schema.log 2>&1; do
+  tries=$((tries + 1))
+  if [ "$tries" -ge 30 ]; then
+    echo "✗ Banco inacessível ou schema não pôde ser criado:"
+    cat /tmp/schema.log
+    exit 1
+  fi
+  sleep 2
+done
+cat /tmp/schema.log
+
 tries=0
 until npx prisma migrate deploy >/tmp/migrate.log 2>&1; do
   tries=$((tries + 1))
