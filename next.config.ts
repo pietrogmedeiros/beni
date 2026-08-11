@@ -4,14 +4,14 @@ import type { NextConfig } from "next";
 const root = path.resolve(import.meta.dirname);
 
 /**
- * Prefixo do endereço — o Beni é servido em `beni.space/workspace`.
+ * Prefixo do endereço. Vazio por padrão: o Beni tem domínio próprio
+ * (`app.benicio.space`) e responde na raiz.
  *
- * O valor entra nos pacotes do navegador durante o build, então não adianta
- * mudar só no runtime: quem quiser servir na raiz precisa buildar com
- * `BASE_PATH=""`. O padrão é `/workspace` justamente para o build de produção
- * sair certo mesmo que a plataforma esqueça de passar a variável.
+ * Existe para quem precisar servir sob um caminho — `BASE_PATH=/workspace`, por
+ * exemplo. O valor entra nos pacotes do navegador durante o build, então mudar
+ * só no runtime não adianta: é preciso reconstruir a imagem.
  */
-const basePath = (process.env.BASE_PATH ?? "/workspace").replace(/\/$/, "");
+const basePath = (process.env.BASE_PATH ?? "").replace(/\/$/, "");
 
 const nextConfig: NextConfig = {
   basePath,
