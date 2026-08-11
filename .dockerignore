@@ -14,3 +14,12 @@ README.md
 coverage
 .DS_Store
 *.log
+
+# O app de macOS não entra na imagem do servidor — são 1,1 GB de node_modules
+# e .dmg que só fariam o contexto do build viajar à toa.
+desktop
+e2e
+.claude
+.maestri
+.agents
+.windsurf
