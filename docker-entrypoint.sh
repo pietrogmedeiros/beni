@@ -1,6 +1,31 @@
 #!/bin/sh
 set -e
 
+# Falha imediata e explicada quando não há banco configurado. Sem isto o app
+# passa 60 segundos tentando conectar em lugar nenhum antes de morrer, e o
+# painel mostra só um serviço vermelho com log vazio.
+if [ -z "${DATABASE_URL:-}" ] && [ -z "${PGHOST:-}" ]; then
+  echo "✗ Banco não configurado — o Beni não tem onde guardar os dados."
+  echo ""
+  echo "  Defina as variáveis de ambiente do serviço:"
+  echo "    PGHOST=<projeto>_<serviço do postgres>   ex.: gob_banco"
+  echo "    PGPORT=5432"
+  echo "    PGUSER=<usuário>"
+  echo "    PGPASSWORD=<senha do serviço>"
+  echo "    PGDATABASE=<banco>"
+  echo "    PGSCHEMA=beni        (opcional: isola o Beni num schema só dele)"
+  echo "    AUTH_SECRET=<string longa e aleatória>"
+  echo ""
+  echo "  Ou, alternativamente, um DATABASE_URL completo."
+  exit 1
+fi
+
+if [ -z "${AUTH_SECRET:-}" ]; then
+  echo "✗ AUTH_SECRET ausente — sem ele não dá para assinar a sessão e ninguém"
+  echo "  consegue entrar. Gere uma string longa e aleatória e defina no serviço."
+  exit 1
+fi
+
 # O CLI do Prisma só lê DATABASE_URL. Em plataformas que entregam as variáveis
 # PG* separadas (EasyPanel), montamos a URL aqui — mesma regra de
 # src/lib/database-url.ts, inclusive a codificação da senha.
