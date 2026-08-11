@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // O app de macOS é um projeto Electron à parte: CommonJS, regras próprias.
+    "desktop/**",
+    "src/generated/**",
   ]),
 ]);
 

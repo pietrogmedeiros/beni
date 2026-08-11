@@ -99,12 +99,15 @@ function SelectLabel({
   className,
   ...props
 }: SelectPrimitive.GroupLabel.Props) {
+  // mesmo motivo do DropdownMenuLabel: GroupLabel exige um Group ancestral
   return (
-    <SelectPrimitive.GroupLabel
-      data-slot="select-label"
-      className={cn("px-1.5 py-1 text-xs text-muted-foreground", className)}
-      {...props}
-    />
+    <SelectPrimitive.Group>
+      <SelectPrimitive.GroupLabel
+        data-slot="select-label"
+        className={cn("px-1.5 py-1 text-xs text-muted-foreground", className)}
+        {...props}
+      />
+    </SelectPrimitive.Group>
   )
 }
 

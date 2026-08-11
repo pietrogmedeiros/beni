@@ -55,9 +55,11 @@ export function sectionForPath(pathname: string): RailSection {
 export function IconRail({
   unread,
   onNavigate,
+  onInvite,
 }: {
   unread: { unread: number; mentions: number };
   onNavigate?: () => void;
+  onInvite: () => void;
 }) {
   const pathname = usePathname();
   const active = sectionForPath(pathname);
@@ -135,9 +137,9 @@ export function IconRail({
         <Tooltip>
           <TooltipTrigger
             render={
-              <Link
-                href="/settings"
-                onClick={onNavigate}
+              <button
+                type="button"
+                onClick={onInvite}
                 className="flex w-[58px] flex-col items-center gap-1 rounded-lg px-1 py-1.5 text-muted-foreground transition hover:text-sidebar-accent-foreground"
               />
             }

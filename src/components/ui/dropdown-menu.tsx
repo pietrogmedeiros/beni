@@ -53,6 +53,15 @@ function DropdownMenuGroup({ ...props }: MenuPrimitive.Group.Props) {
   return <MenuPrimitive.Group data-slot="dropdown-menu-group" {...props} />
 }
 
+/**
+ * Título de seção do menu.
+ *
+ * `Menu.GroupLabel` do Base UI exige um `<Menu.Group>` ancestral e lança
+ * "MenuGroupContext is missing" quando não encontra — o que derrubava o menu
+ * inteiro. Aqui o rótulo se auto-agrupa: envolvemos num `Menu.Group` próprio,
+ * então funciona solto e continua com a semântica correta quando quem chama
+ * coloca os itens dentro de `DropdownMenuGroup`.
+ */
 function DropdownMenuLabel({
   className,
   inset,
@@ -61,15 +70,17 @@ function DropdownMenuLabel({
   inset?: boolean
 }) {
   return (
-    <MenuPrimitive.GroupLabel
-      data-slot="dropdown-menu-label"
-      data-inset={inset}
-      className={cn(
-        "px-1.5 py-1 text-xs font-medium text-muted-foreground data-inset:pl-7",
-        className
-      )}
-      {...props}
-    />
+    <MenuPrimitive.Group>
+      <MenuPrimitive.GroupLabel
+        data-slot="dropdown-menu-label"
+        data-inset={inset}
+        className={cn(
+          "px-1.5 py-1 text-xs font-medium text-muted-foreground data-inset:pl-7",
+          className
+        )}
+        {...props}
+      />
+    </MenuPrimitive.Group>
   )
 }
 

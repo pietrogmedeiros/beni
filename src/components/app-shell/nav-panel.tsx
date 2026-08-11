@@ -13,6 +13,7 @@ import {
   MessageSquare,
   MoreHorizontal,
   PanelLeftClose,
+  PieChart,
   Plus,
   Settings,
 } from "lucide-react";
@@ -22,6 +23,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { UserMenu } from "@/components/app-shell/user-menu";
 import { sectionForPath } from "@/components/app-shell/icon-rail";
@@ -57,12 +65,14 @@ export function NavPanel({
   user,
   projects,
   onNewProject,
+  onNewTask,
   onNavigate,
   onCollapse,
 }: {
   user: UserDTO;
   projects: ProjectItem[];
   onNewProject: () => void;
+  onNewTask: (defaults?: { projectId?: string }) => void;
   onNavigate?: () => void;
   onCollapse?: () => void;
 }) {
@@ -101,14 +111,28 @@ export function NavPanel({
             <Plus className="size-4" />
           </button>
           <span className="h-4 w-px bg-border" />
-          <button
-            type="button"
-            onClick={onNewProject}
-            className="flex size-6 items-center justify-center rounded-r-lg text-muted-foreground transition hover:bg-accent"
-            aria-label="Mais opções"
-          >
-            <ChevronDown className="size-3.5" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="flex size-6 items-center justify-center rounded-r-lg text-muted-foreground transition hover:bg-accent"
+              aria-label="Mais opções de criação"
+            >
+              <ChevronDown className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => onNewTask()}>
+                <Plus className="size-4" />
+                Nova tarefa
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onNewProject}>
+                <FolderKanban className="size-4" />
+                Novo projeto
+              </DropdownMenuItem>
+              <DropdownMenuItem render={<Link href="/chat?new=1" />}>
+                <Hash className="size-4" />
+                Novo canal
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         {onCollapse && (
           <Button
@@ -171,6 +195,7 @@ export function NavPanel({
               project={project}
               pathname={pathname}
               onNavigate={onNavigate}
+              onNewTask={onNewTask}
             />
           ))
         )}
@@ -190,7 +215,7 @@ export function NavPanel({
           .map((channel) => (
             <Link
               key={channel.id}
-              href="/chat"
+              href={`/chat?c=${channel.id}`}
               onClick={onNavigate}
               className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
             >
@@ -215,7 +240,7 @@ export function NavPanel({
             </Link>
           ))}
         <Link
-          href="/chat"
+          href="/chat?new=1"
           onClick={onNavigate}
           className="mt-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
         >
@@ -291,10 +316,12 @@ function ProjectNavItem({
   project,
   pathname,
   onNavigate,
+  onNewTask,
 }: {
   project: ProjectItem;
   pathname: string;
   onNavigate?: () => void;
+  onNewTask: (defaults?: { projectId?: string }) => void;
 }) {
   const isActive = pathname.startsWith(`/p/${project.id}`);
   const [open, setOpen] = useState(isActive);
@@ -338,9 +365,29 @@ function ProjectNavItem({
           </span>
         </Link>
 
-        <span className="flex shrink-0 items-center opacity-0 transition group-hover:opacity-100">
-          <MoreHorizontal className="size-3.5 text-muted-foreground" />
-        </span>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className="flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground opacity-0 transition hover:bg-background group-hover:opacity-100 data-[popup-open]:opacity-100"
+            aria-label={`Ações de ${project.name}`}
+          >
+            <MoreHorizontal className="size-3.5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-52">
+            <DropdownMenuItem onClick={() => onNewTask({ projectId: project.id })}>
+              <Plus className="size-4" />
+              Nova tarefa
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={`/p/${project.id}/dashboard`} />}>
+              <PieChart className="size-4" />
+              Painel do projeto
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href={`/p/${project.id}/settings`} />}>
+              <Settings className="size-4" />
+              Configurar projeto
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <CollapsibleContent className="ml-[26px] mt-0.5 space-y-px border-l pl-2">

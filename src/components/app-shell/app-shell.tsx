@@ -21,6 +21,7 @@ import {
   type NewTaskDefaults,
 } from "@/components/task/new-task-dialog";
 import { TaskSheet } from "@/components/task/task-sheet";
+import { InviteDialog } from "@/components/app-shell/invite-dialog";
 import { unreadTotals } from "@/server/actions/chat";
 import { cn } from "@/lib/utils";
 import type { UserDTO } from "@/server/queries";
@@ -54,6 +55,7 @@ export function AppShell({
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState({ unread: 0, mentions: 0 });
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -161,6 +163,8 @@ export function AppShell({
             workspace={workspace}
             onOpenSearch={() => setSearchOpen(true)}
             onNewTask={() => openNewTask()}
+            onNewProject={() => setProjectDialog(true)}
+            onOpenTask={(id) => setOpenTaskId(id)}
             desktop={desktop}
           />
 
@@ -185,6 +189,10 @@ export function AppShell({
               <IconRail
                 unread={unread}
                 onNavigate={() => setMobileOpen(false)}
+                onInvite={() => {
+                  setMobileOpen(false);
+                  setInviteOpen(true);
+                }}
               />
               {(!collapsed || mobileOpen) && !hidePanel && (
                 <NavPanel
@@ -194,6 +202,7 @@ export function AppShell({
                     setMobileOpen(false);
                     setProjectDialog(true);
                   }}
+                  onNewTask={openNewTask}
                   onNavigate={() => setMobileOpen(false)}
                   onCollapse={togglePanel}
                 />
@@ -234,6 +243,8 @@ export function AppShell({
           defaults={taskDialog.defaults}
           onOpenChange={(open) => setTaskDialog((prev) => ({ ...prev, open }))}
         />
+
+        <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
 
         <TaskSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
       </AppProvider>

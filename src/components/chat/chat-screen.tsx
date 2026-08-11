@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Check,
@@ -81,6 +82,8 @@ export function ChatScreen({
   initialChannelId: string | null;
 }) {
   const { members, user } = useApp();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [channels, setChannels] = useState(initialChannels);
   const [activeId, setActiveId] = useState<string | null>(initialChannelId);
   const [channel, setChannel] = useState<ChannelDetail | null>(null);
@@ -109,6 +112,23 @@ export function ChatScreen({
     },
     [refreshChannels],
   );
+
+  /**
+   * A barra lateral aponta para `/chat?c=<id>` e `/chat?new=1`; aqui esses
+   * parâmetros viram, respectivamente, o canal aberto e o diálogo de canal.
+   */
+  useEffect(() => {
+    const target = searchParams.get("c");
+    const wantsNew = searchParams.get("new");
+    if (!target && !wantsNew) return;
+
+    // sincronização com fonte externa (URL) — intencional
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (target) void openChannel(target);
+    if (wantsNew) setNewChannelOpen(true);
+    router.replace("/chat");
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [searchParams, router, openChannel]);
 
   // abre o primeiro canal ao entrar
   useEffect(() => {

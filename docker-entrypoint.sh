@@ -1,6 +1,22 @@
 #!/bin/sh
 set -e
 
+# O CLI do Prisma só lê DATABASE_URL. Em plataformas que entregam as variáveis
+# PG* separadas (EasyPanel), montamos a URL aqui — mesma regra de
+# src/lib/database-url.ts, inclusive a codificação da senha.
+if [ -z "${DATABASE_URL:-}" ] && [ -n "${PGHOST:-}" ]; then
+  DATABASE_URL=$(node -e '
+    const e = process.env;
+    const user = encodeURIComponent(e.PGUSER || "postgres");
+    const pass = e.PGPASSWORD ? ":" + encodeURIComponent(e.PGPASSWORD) : "";
+    const db = encodeURIComponent(e.PGDATABASE || "postgres");
+    const ssl = e.PGSSLMODE ? "&sslmode=" + e.PGSSLMODE : "";
+    process.stdout.write(`postgresql://${user}${pass}@${e.PGHOST}:${e.PGPORT || 5432}/${db}?schema=${e.PGSCHEMA || "public"}${ssl}`);
+  ')
+  export DATABASE_URL
+  echo "→ Banco: ${PGUSER:-postgres}@${PGHOST}:${PGPORT:-5432}/${PGDATABASE:-postgres}"
+fi
+
 echo "→ Aguardando o banco de dados…"
 tries=0
 until npx prisma migrate deploy >/tmp/migrate.log 2>&1; do

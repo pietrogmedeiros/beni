@@ -227,3 +227,30 @@ dnd-kit · Recharts · jose (JWT) · bcrypt.
 - Sirva por HTTPS: o cookie de sessão usa `secure` quando `NODE_ENV=production`.
 - O `docker-compose.yml` sobe um Postgres por conveniência; em produção aponte
   `DATABASE_URL` para o seu banco gerenciado e remova o serviço `db`.
+
+### Deploy no EasyPanel
+
+1. **Fonte**: GitHub, ramo `main`, caminho `/`, build por **Dockerfile** (não Nixpacks).
+2. **Domínio**: protocolo **HTTP** e porta **3000**. O padrão 80 devolve *Bad Gateway*
+   mesmo com DNS e certificado corretos — quem faz o TLS é o Traefik na frente.
+3. **Variáveis** (o Postgres do próprio EasyPanel entrega as `PG*`; não monte a
+   URL na mão, a senha gerada costuma ter caracteres que a quebram):
+
+   ```
+   PGHOST=<projeto>_<servico-do-postgres>
+   PGPORT=5432
+   PGUSER=postgres
+   PGPASSWORD=<senha do serviço>
+   PGDATABASE=<banco>
+   AUTH_SECRET=<string longa e aleatória>
+   PORT=3000
+   SEED_ON_START=false
+   ```
+
+4. **Primeiro acesso**: com `SEED_ON_START=false` não existe usuário nenhum —
+   abra `/register`, crie a sua conta e o workspace nasce junto. Com `true`,
+   entra o conjunto de demonstração (`admin@beni.app` / `beni1234`).
+
+As migrations rodam sozinhas no boot (`prisma migrate deploy` no entrypoint);
+não é preciso executar SQL. O log de partida mostra
+`→ Banco: usuario@host:5432/base` e depois `✔ Migrations aplicadas`.
