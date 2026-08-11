@@ -22,6 +22,7 @@ import {
 } from "@/components/task/new-task-dialog";
 import { TaskSheet } from "@/components/task/task-sheet";
 import { InviteDialog } from "@/components/app-shell/invite-dialog";
+import { BulkCreateDialog } from "@/components/task/bulk-create-dialog";
 import { unreadTotals } from "@/server/actions/chat";
 import { cn } from "@/lib/utils";
 import { withBase } from "@/lib/base-path";
@@ -57,9 +58,12 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [unread, setUnread] = useState({ unread: 0, mentions: 0 });
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  // estando dentro de um projeto, a criação em massa já abre apontada para ele
+  const projectIdFromPath = pathname.match(/^\/p\/([^/]+)/)?.[1] ?? null;
   const router = useRouter();
 
   useEffect(() => {
@@ -165,6 +169,7 @@ export function AppShell({
             onOpenSearch={() => setSearchOpen(true)}
             onNewTask={() => openNewTask()}
             onNewProject={() => setProjectDialog(true)}
+            onBulkCreate={() => setBulkOpen(true)}
             onOpenTask={(id) => setOpenTaskId(id)}
             desktop={desktop}
           />
@@ -246,6 +251,12 @@ export function AppShell({
         />
 
         <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} />
+        <BulkCreateDialog
+          open={bulkOpen}
+          onOpenChange={setBulkOpen}
+          projects={projects}
+          defaultProjectId={projectIdFromPath ?? undefined}
+        />
 
         <TaskSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
       </AppProvider>

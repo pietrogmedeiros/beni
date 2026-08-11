@@ -16,15 +16,34 @@ export function initials(name: string) {
     .join("");
 }
 
+/**
+ * Converte para `Date` respeitando o fuso de quem lê.
+ *
+ * `new Date("2026-08-20")` é interpretado como meia-noite **UTC**; no Brasil
+ * isso cai às 21h do dia 19, e a data aparece um dia antes na tela. Datas sem
+ * hora são do calendário, não de um instante — então são montadas ao meio-dia
+ * local, longe de qualquer virada.
+ */
+function toDate(date: Date | string) {
+  if (typeof date !== "string") return date;
+  const dateOnly = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!dateOnly) return new Date(date);
+  return new Date(
+    Number(dateOnly[1]),
+    Number(dateOnly[2]) - 1,
+    Number(dateOnly[3]),
+    12,
+  );
+}
+
 export function formatDate(date: Date | string | null | undefined) {
   if (!date) return null;
-  const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "dd MMM", { locale: ptBR });
+  return format(toDate(date), "dd MMM", { locale: ptBR });
 }
 
 export function formatFullDate(date: Date | string | null | undefined) {
   if (!date) return null;
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = toDate(date);
   return format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 }
 
@@ -41,7 +60,7 @@ export function formatRelative(date: Date | string) {
 
 export function smartDate(date: Date | string | null | undefined) {
   if (!date) return null;
-  const d = typeof date === "string" ? new Date(date) : date;
+  const d = toDate(date);
   if (isToday(d)) return "Hoje";
   if (isTomorrow(d)) return "Amanhã";
   if (isYesterday(d)) return "Ontem";
@@ -50,7 +69,8 @@ export function smartDate(date: Date | string | null | undefined) {
 
 export function isOverdue(due: Date | string | null | undefined, done: boolean) {
   if (!due || done) return false;
-  const d = typeof due === "string" ? new Date(due) : due;
+  // mesma armadilha de fuso: sem isto uma tarefa que vence hoje aparece atrasada
+  const d = toDate(due);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d < today;

@@ -14,6 +14,7 @@ import {
   Clock,
   FolderKanban,
   Hash,
+  ListPlus,
   Loader2,
   LogOut,
   Monitor,
@@ -62,6 +63,7 @@ export function TopBar({
   onOpenSearch,
   onNewTask,
   onNewProject,
+  onBulkCreate,
   onOpenTask,
   desktop,
 }: {
@@ -70,6 +72,7 @@ export function TopBar({
   onOpenSearch: () => void;
   onNewTask: () => void;
   onNewProject: () => void;
+  onBulkCreate: () => void;
   onOpenTask: (id: string) => void;
   desktop?: boolean;
 }) {
@@ -105,7 +108,11 @@ export function TopBar({
       </div>
 
       <div className="flex shrink-0 items-center gap-0.5" style={noDrag}>
-        <CreateMenu onNewTask={onNewTask} onNewProject={onNewProject} />
+        <CreateMenu
+          onNewTask={onNewTask}
+          onNewProject={onNewProject}
+          onBulkCreate={onBulkCreate}
+        />
         <RecentMenu onOpenTask={onOpenTask} />
         <NotificationsMenu onOpenTask={onOpenTask} />
         <AccountMenu user={user} />
@@ -170,9 +177,11 @@ function WorkspaceMenu({
 function CreateMenu({
   onNewTask,
   onNewProject,
+  onBulkCreate,
 }: {
   onNewTask: () => void;
   onNewProject: () => void;
+  onBulkCreate: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -193,6 +202,10 @@ function CreateMenu({
         <DropdownMenuItem onClick={onNewTask}>
           <Plus className="size-4" />
           Nova tarefa
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onBulkCreate}>
+          <ListPlus className="size-4" />
+          Tarefas em massa
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onNewProject}>
           <FolderKanban className="size-4" />

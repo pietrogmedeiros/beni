@@ -2,6 +2,8 @@ appId: app.beni.desktop
 productName: Beni
 copyright: Beni
 
+afterPack: build/after-pack.js
+
 directories:
   buildResources: build
   output: dist
@@ -17,7 +19,9 @@ mac:
     - target: dmg
       arch: [universal]
   darkModeSupport: true
-  # sem conta de desenvolvedor: assinatura ad-hoc, sem notarização
+  # Sem conta de desenvolvedor não há notarização. A assinatura ad-hoc, que é
+  # obrigatória em Apple Silicon, sai no build/after-pack.js — `identity: "-"`
+  # aqui não funciona (o electron-builder procura esse nome no chaveiro).
   identity: null
   extendInfo:
     NSHumanReadableCopyright: Beni
