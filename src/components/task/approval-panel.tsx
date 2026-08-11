@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { BASE_PATH } from "@/lib/base-path";
 import {
   CheckCircle2,
   Clock,
@@ -210,5 +211,5 @@ export function ApprovalPanel({
 }
 
 function origin() {
-  return typeof window === "undefined" ? "" : window.location.origin;
+  return typeof window === "undefined" ? "" : `${window.location.origin}${BASE_PATH}`;
 }

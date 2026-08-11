@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { COOKIE_NAME } from "@/lib/auth";
+import { withBase } from "@/lib/base-path";
 
 /**
  * Limpa a sessão e devolve o usuário ao login.
@@ -15,7 +16,7 @@ import { COOKIE_NAME } from "@/lib/auth";
 export async function GET() {
   const response = new NextResponse(null, {
     status: 307,
-    headers: { Location: "/login" },
+    headers: { Location: withBase("/login") },
   });
   response.cookies.delete(COOKIE_NAME);
   return response;

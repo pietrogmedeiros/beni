@@ -36,6 +36,7 @@ import { sectionForPath } from "@/components/app-shell/icon-rail";
 import { listChannels, type ChannelSummary } from "@/server/actions/chat";
 import { PROJECT_VIEWS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { withBase } from "@/lib/base-path";
 import type { UserDTO } from "@/server/queries";
 
 type ProjectItem = {
@@ -86,7 +87,7 @@ export function NavPanel({
       listChannels().then((c) => alive && setChannels(c));
     };
     load();
-    const source = new EventSource("/api/chat/stream");
+    const source = new EventSource(withBase("/api/chat/stream"));
     source.onmessage = () => load();
     return () => {
       alive = false;

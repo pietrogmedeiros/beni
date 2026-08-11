@@ -10,7 +10,8 @@ const { app, BrowserWindow, Menu, shell, dialog, nativeTheme } = require("electr
 const path = require("node:path");
 const fs = require("node:fs");
 
-const DEFAULT_URL = "http://localhost:3000";
+// O app é servido sob um prefixo; apontar para a raiz do domínio dá 404.
+const DEFAULT_URL = "https://beni.space/workspace";
 const configFile = path.join(app.getPath("userData"), "config.json");
 
 function readConfig() {

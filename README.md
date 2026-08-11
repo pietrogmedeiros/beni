@@ -15,7 +15,7 @@ Lista, Quadro (kanban), Gantt, Backlog com sprints, Calendário e Painel — num
 docker compose up -d --build
 ```
 
-Abra **http://localhost:3000** e entre com:
+Abra **http://localhost:3000/workspace** e entre com:
 
 | Campo | Valor            |
 | ----- | ---------------- |
@@ -134,7 +134,7 @@ npm install
 npm run dist     # gera desktop/dist/Beni-1.0.0-mac.dmg (universal: Intel + Apple Silicon)
 ```
 
-Por padrão o app aponta para `http://localhost:3000`; troque em **Beni → Servidor…**
+Por padrão o app aponta para `https://beni.space/workspace`; troque em **Beni → Servidor…**
 ou pela variável `BENI_URL`. O `.dmg` não é assinado com conta de desenvolvedor —
 na primeira vez, abra com **clique direito → Abrir**.
 
@@ -231,8 +231,13 @@ dnd-kit · Recharts · jose (JWT) · bcrypt.
 ### Deploy no EasyPanel
 
 1. **Fonte**: GitHub, ramo `main`, caminho `/`, build por **Dockerfile** (não Nixpacks).
-2. **Domínio**: protocolo **HTTP** e porta **3000**. O padrão 80 devolve *Bad Gateway*
-   mesmo com DNS e certificado corretos — quem faz o TLS é o Traefik na frente.
+2. **Domínio**: `beni.space`, caminho `/workspace`, protocolo **HTTP** e porta
+   **3000**. O padrão 80 devolve *Bad Gateway* mesmo com DNS e certificado
+   corretos — quem faz o TLS é o Traefik na frente.
+
+   O prefixo `/workspace` é o `basePath` do Next e **entra nos pacotes durante o
+   build**: mudar a variável depois não adianta, é preciso reconstruir. O padrão
+   já é `/workspace`; para servir na raiz, builde com `BASE_PATH=""`.
 3. **Variáveis** (o Postgres do próprio EasyPanel entrega as `PG*`; não monte a
    URL na mão, a senha gerada costuma ter caracteres que a quebram):
 

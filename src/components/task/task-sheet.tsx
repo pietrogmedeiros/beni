@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { withBase } from "@/lib/base-path";
 import {
   CheckCircle2,
   Copy,
@@ -234,7 +235,7 @@ function TaskSheetBody({
             className="size-7"
             onClick={() => {
               navigator.clipboard.writeText(
-                `${window.location.origin}/t/${task.id}`,
+                `${window.location.origin}${withBase(`/t/${task.id}`)}`,
               );
               toast.success("Link copiado");
             }}

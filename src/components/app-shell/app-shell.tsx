@@ -24,6 +24,7 @@ import { TaskSheet } from "@/components/task/task-sheet";
 import { InviteDialog } from "@/components/app-shell/invite-dialog";
 import { unreadTotals } from "@/server/actions/chat";
 import { cn } from "@/lib/utils";
+import { withBase } from "@/lib/base-path";
 import type { UserDTO } from "@/server/queries";
 
 const STORAGE_KEY = "beni:panel-collapsed";
@@ -91,7 +92,7 @@ export function AppShell({
       unreadTotals().then((t) => alive && setUnread(t));
     };
     load();
-    const source = new EventSource("/api/chat/stream");
+    const source = new EventSource(withBase("/api/chat/stream"));
     source.onmessage = () => load();
     return () => {
       alive = false;

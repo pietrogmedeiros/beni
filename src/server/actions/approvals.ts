@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { withBase } from "@/lib/base-path";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 
 const APPROVAL_TTL_DAYS = 30;
@@ -24,7 +25,7 @@ async function publicUrlFor(token: string) {
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto =
     h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}/aprovar/${token}`;
+  return `${proto}://${host}${withBase(`/aprovar/${token}`)}`;
 }
 
 /**

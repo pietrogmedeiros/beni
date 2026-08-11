@@ -15,6 +15,10 @@ RUN npm ci
 
 # ————— build —————
 FROM base AS builder
+# O prefixo do endereço entra nos pacotes do navegador: é decidido aqui, não
+# no runtime. Padrão /workspace; passe BASE_PATH="" para servir na raiz.
+ARG BASE_PATH
+ENV BASE_PATH=${BASE_PATH:-/workspace}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # `npm run build` roda `prisma generate` e depois `next build`
@@ -30,9 +34,12 @@ RUN node tools-package.mjs source-package.json package.json \
 
 # ————— runtime —————
 FROM base AS runner
+ARG BASE_PATH
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV BASE_PATH=${BASE_PATH:-/workspace}
+ENV NEXT_PUBLIC_BASE_PATH=${BASE_PATH:-/workspace}
 
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
@@ -56,7 +63,7 @@ USER nextjs
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:3000'+(process.env.BASE_PATH||'')+'/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]

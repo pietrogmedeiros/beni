@@ -69,6 +69,7 @@ import {
 } from "@/server/actions/chat";
 import { RelativeTime } from "@/components/relative-time";
 import { cn, initials, readableOn } from "@/lib/utils";
+import { withBase } from "@/lib/base-path";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -140,7 +141,7 @@ export function ChatScreen({
 
   // tempo real: recarrega o canal aberto e a lista quando algo muda
   useEffect(() => {
-    const source = new EventSource("/api/chat/stream");
+    const source = new EventSource(withBase("/api/chat/stream"));
 
     source.onmessage = (event) => {
       const data = JSON.parse(event.data) as {

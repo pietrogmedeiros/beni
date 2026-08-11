@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { withBase } from "@/lib/base-path";
 import { Copy, Mail, UserPlus } from "lucide-react";
 import {
   Dialog,
@@ -35,7 +36,7 @@ export function InviteDialog({
     if (!open) return;
     inviteLink().then(({ workspaceName: name, path }) => {
       setWorkspaceName(name);
-      setUrl(`${window.location.origin}${path}`);
+      setUrl(`${window.location.origin}${withBase(path)}`);
     });
   }, [open]);
 
