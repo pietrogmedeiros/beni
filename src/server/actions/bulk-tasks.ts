@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { currentWorkspace, requireUser } from "@/lib/auth";
-import { parseBulkTasks, type ParsedTask } from "@/lib/bulk-parse";
+import { MAX_BULK_TASKS, parseBulkTasks, type ParsedTask } from "@/lib/bulk-parse";
 import { syncTask } from "@/server/search";
 import { PALETTE } from "@/lib/constants";
 
@@ -17,6 +17,8 @@ export type BulkPreview = {
   tasks: BulkPreviewTask[];
   /** Apelidos que não casaram com ninguém do time. */
   unknownPeople: string[];
+  /** Quantas linhas ficaram de fora por causa do limite. */
+  ignored: number;
 };
 
 function normalize(value: string) {
@@ -43,7 +45,9 @@ export async function previewBulkTasks(
   });
   if (!project) throw new Error("Projeto não encontrado");
 
-  const parsed = parseBulkTasks(text);
+  const todas = parseBulkTasks(text);
+  const parsed = todas.slice(0, MAX_BULK_TASKS);
+  const ignored = todas.length - parsed.length;
 
   const members = await db.membership.findMany({
     where: { workspaceId: workspace.id },
@@ -76,7 +80,7 @@ export async function previewBulkTasks(
     return { ...task, assigneeId: match.user.id, assigneeName: match.user.name };
   });
 
-  return { tasks, unknownPeople };
+  return { tasks, unknownPeople, ignored };
 }
 
 /**

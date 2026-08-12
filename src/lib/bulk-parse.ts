@@ -18,6 +18,13 @@
  * colar ata de reunião e checklist de Markdown sem limpar nada antes.
  */
 
+/**
+ * Teto por importação. Colar um documento inteiro por engano é fácil — e sem
+ * limite isso vira centenas de tarefas de lixo para apagar uma a uma, além de
+ * uma tela com milhares de cartões para desenhar.
+ */
+export const MAX_BULK_TASKS = 200;
+
 export type ParsedTask = {
   title: string;
   priority: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | null;

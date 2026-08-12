@@ -8,6 +8,7 @@ import {
   previewBulkTasks,
   type BulkPreview,
 } from "@/server/actions/bulk-tasks";
+import { MAX_BULK_TASKS } from "@/lib/bulk-parse";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PRIORITY_META, TASK_TYPE_META } from "@/lib/constants";
 import { formatDate, pluralize } from "@/lib/utils";
+
+/** Quantos cartões a prévia desenha; o resto é criado do mesmo jeito. */
+const VISIVEIS = 60;
 
 const EXEMPLO = `Corrigir login quebrado !alta @ana #bug 14/08 ~3h
   - Reproduzir o erro
@@ -105,7 +109,7 @@ export function BulkCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="flex max-h-[88dvh] flex-col overflow-hidden sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ListPlus className="size-4" />
@@ -117,7 +121,7 @@ export function BulkCreateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto sm:grid-cols-2">
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Projeto</Label>
@@ -145,7 +149,7 @@ export function BulkCreateDialog({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={EXEMPLO}
-                className="min-h-56 resize-y font-mono text-xs"
+                className="max-h-[34vh] min-h-40 resize-y overflow-y-auto font-mono text-xs"
               />
             </div>
 
@@ -188,7 +192,7 @@ export function BulkCreateDialog({
               )}
             </div>
 
-            <div className="thin-scrollbar max-h-[26rem] min-h-56 flex-1 space-y-1.5 overflow-y-auto rounded-lg border p-2">
+            <div className="thin-scrollbar max-h-[34vh] min-h-40 flex-1 space-y-1.5 overflow-y-auto rounded-lg border p-2">
               {!preview || total === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
                   <Sparkles className="size-5 text-muted-foreground" />
@@ -199,7 +203,7 @@ export function BulkCreateDialog({
                   </p>
                 </div>
               ) : (
-                preview.tasks.map((task, i) => (
+                preview.tasks.slice(0, VISIVEIS).map((task, i) => (
                   <div key={i} className="rounded-md border bg-card px-2.5 py-2">
                     <div className="flex items-start gap-2">
                       <span className="mt-0.5 text-[10px] text-muted-foreground">
@@ -289,6 +293,21 @@ export function BulkCreateDialog({
                 ))
               )}
             </div>
+
+            {preview && total > VISIVEIS && (
+              <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                Mostrando as {VISIVEIS} primeiras. Todas as {total} serão criadas.
+              </p>
+            )}
+
+            {preview && preview.ignored > 0 && (
+              <p className="mt-2 flex items-start gap-1.5 rounded-md bg-warning/10 px-2 py-1.5 text-[11px] text-warning-foreground">
+                <AlertTriangle className="mt-0.5 size-3 shrink-0" />
+                O texto tem mais linhas do que o limite de {MAX_BULK_TASKS} por
+                importação. As {preview.ignored} últimas ficaram de fora — crie
+                em duas levas se forem mesmo necessárias.
+              </p>
+            )}
 
             {preview && preview.unknownPeople.length > 0 && (
               <p className="mt-2 flex items-start gap-1.5 rounded-md bg-warning/10 px-2 py-1.5 text-[11px] text-warning-foreground">
