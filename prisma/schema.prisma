@@ -387,16 +387,22 @@ model TaskGithubLink {
 
 /// Pedido de aprovação enviado a um stakeholder por link público.
 /// O aprovador não precisa de conta: identifica-se pelo nome ao decidir.
-/// Arquivo anexado a uma tarefa. Guardamos só os metadados aqui; os bytes
-/// vivem em disco (UPLOAD_DIR), porque vídeo em coluna de banco é receita
-/// de backup impraticável.
+/// Arquivo anexado a uma tarefa.
+///
+/// Por padrão o conteúdo fica aqui mesmo, em `data`: assim o anexo sobrevive a
+/// qualquer implantação sem depender de volume montado na plataforma. Para
+/// arquivos realmente grandes, definir `UPLOAD_DIR` passa a gravar em disco e
+/// só o `storageKey` fica no banco.
 model Attachment {
   id           String   @id @default(cuid())
   taskId       String
   name         String
   mimeType     String
   size         Int
-  storageKey   String   @unique
+  /// Conteúdo do arquivo. É o padrão: funciona sem configurar volume nenhum.
+  data         Bytes?
+  /// Nome em disco, quando UPLOAD_DIR está definido (arquivos grandes).
+  storageKey   String?  @unique
   uploadedById String?
   createdAt    DateTime @default(now())
 

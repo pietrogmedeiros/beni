@@ -8,6 +8,7 @@ import {
   Inbox,
   MessageSquare,
   MoreHorizontal,
+  PanelLeftOpen,
   PieChart,
   Settings,
   UserPlus,
@@ -56,10 +57,15 @@ export function IconRail({
   unread,
   onNavigate,
   onInvite,
+  collapsed,
+  onExpand,
 }: {
   unread: { unread: number; mentions: number };
   onNavigate?: () => void;
   onInvite: () => void;
+  /** O painel de navegação está recolhido? */
+  collapsed?: boolean;
+  onExpand: () => void;
 }) {
   const pathname = usePathname();
   const active = sectionForPath(pathname);
@@ -134,6 +140,26 @@ export function IconRail({
       })}
 
       <div className="mt-auto flex flex-col items-center gap-1">
+        {/* Com o painel recolhido, o botão de recolher some junto com ele —
+            este é o único caminho de volta que não seja recarregar a página. */}
+        {collapsed && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  onClick={onExpand}
+                  aria-label="Expandir o painel"
+                  className="flex size-9 items-center justify-center rounded-[10px] text-muted-foreground transition hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                />
+              }
+            >
+              <PanelLeftOpen className="size-[18px]" />
+            </TooltipTrigger>
+            <TooltipContent side="right">Expandir o painel ( [ )</TooltipContent>
+          </Tooltip>
+        )}
+
         <Tooltip>
           <TooltipTrigger
             render={

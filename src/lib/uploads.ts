@@ -4,20 +4,32 @@ import { mkdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
- * Armazenamento de anexos em disco.
+ * Armazenamento de anexos.
  *
- * Vídeo e imagem não vão para o banco: um `bytea` de 80 MB transforma cada
- * backup e cada réplica num problema. Os bytes ficam num diretório e o banco
- * guarda só o endereço.
+ * **Padrão: dentro do Postgres.** Sem `UPLOAD_DIR`, os bytes vão para a coluna
+ * `data` da própria tabela. Isso resolve o problema que dói de verdade: no
+ * container, o sistema de arquivos é descartado a cada implantação, então um
+ * anexo em disco sem volume montado desaparece e deixa o registro apontando
+ * para o vazio. No banco ele entra no mesmo backup do resto e pronto.
  *
- * **Em produção esse diretório precisa ser um volume.** Sem volume, o sistema
- * de arquivos do container é descartado a cada implantação e os anexos somem
- * enquanto os registros continuam no banco — apontando para o vazio.
+ * O preço é o backup crescer com os arquivos — por isso o teto padrão é baixo
+ * (25 MB), o suficiente para captura de tela e vídeo curto de aprovação. Quem
+ * precisar hospedar arquivo grande define `UPLOAD_DIR` apontando para um
+ * volume e volta a gravar em disco, com só o endereço no banco.
+ *
+ * A leitura por faixa não carrega o arquivo inteiro em nenhum dos dois modos:
+ * em disco é `createReadStream` com início e fim; no banco é `substring()` do
+ * Postgres, que fatia antes de mandar pela rede.
  */
-export const UPLOAD_DIR = process.env.UPLOAD_DIR ?? "/app/uploads";
+export const UPLOAD_DIR = process.env.UPLOAD_DIR ?? null;
 
-/** Teto por arquivo. 100 MB cobre vídeo de tela sem virar depósito. */
-export const MAX_UPLOAD_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 100) * 1024 * 1024;
+export function usingDisk() {
+  return !!UPLOAD_DIR;
+}
+
+/** Teto por arquivo: 25 MB no banco, 100 MB quando há volume em disco. */
+export const MAX_UPLOAD_BYTES =
+  Number(process.env.MAX_UPLOAD_MB ?? (UPLOAD_DIR ? 100 : 25)) * 1024 * 1024;
 
 const ALLOWED_PREFIXES = ["image/", "video/", "audio/"];
 const ALLOWED_EXACT = new Set([
@@ -51,29 +63,36 @@ function storageKeyFor(originalName: string) {
 }
 
 export function resolveStoragePath(storageKey: string) {
+  if (!UPLOAD_DIR) throw new Error("UPLOAD_DIR não configurado");
   // defesa em profundidade: mesmo vindo do banco, o nome é normalizado e
   // precisa continuar dentro do diretório de uploads
   const safe = path.basename(storageKey);
-  const full = path.join(UPLOAD_DIR, safe);
-  if (!full.startsWith(path.resolve(UPLOAD_DIR) + path.sep) && full !== path.join(UPLOAD_DIR, safe)) {
-    throw new Error("Caminho de anexo inválido");
-  }
-  return full;
+  return path.join(UPLOAD_DIR, safe);
 }
 
-export async function saveUpload(file: File) {
+export type StoredUpload = {
+  storageKey: string | null;
+  data: Buffer | null;
+  size: number;
+  checksum: string;
+};
+
+export async function saveUpload(file: File): Promise<StoredUpload> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const checksum = createHash("sha256").update(buffer).digest("hex").slice(0, 16);
+
+  if (!UPLOAD_DIR) {
+    return { storageKey: null, data: buffer, size: buffer.byteLength, checksum };
+  }
+
   await mkdir(UPLOAD_DIR, { recursive: true });
   const storageKey = storageKeyFor(file.name);
-  const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(resolveStoragePath(storageKey), buffer);
-  return {
-    storageKey,
-    size: buffer.byteLength,
-    checksum: createHash("sha256").update(buffer).digest("hex").slice(0, 16),
-  };
+  return { storageKey, data: null, size: buffer.byteLength, checksum };
 }
 
-export async function removeUpload(storageKey: string) {
+export async function removeUpload(storageKey: string | null) {
+  if (!storageKey || !UPLOAD_DIR) return;
   try {
     await unlink(resolveStoragePath(storageKey));
   } catch {

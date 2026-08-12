@@ -60,8 +60,9 @@ export async function GET(
     return new NextResponse("Sem permissão", { status: 403 });
   }
 
-  const filePath = resolveStoragePath(attachment.storageKey);
-  const size = await uploadSize(attachment.storageKey);
+  const size = attachment.storageKey
+    ? await uploadSize(attachment.storageKey)
+    : attachment.size;
   if (size === null) {
     return new NextResponse("Arquivo indisponível", { status: 410 });
   }
@@ -90,13 +91,36 @@ export async function GET(
 
     headers.set("Content-Range", `bytes ${start}-${end}/${size}`);
     headers.set("Content-Length", String(end - start + 1));
-    const stream = Readable.toWeb(
-      createReadStream(filePath, { start, end }),
-    ) as ReadableStream;
-    return new NextResponse(stream, { status: 206, headers });
+
+    if (attachment.storageKey) {
+      const stream = Readable.toWeb(
+        createReadStream(resolveStoragePath(attachment.storageKey), { start, end }),
+      ) as ReadableStream;
+      return new NextResponse(stream, { status: 206, headers });
+    }
+
+    // `substring` do Postgres corta antes de mandar: arrastar a linha do tempo
+    // de um vídeo não carrega o arquivo inteiro na memória do servidor
+    const [row] = await db.$queryRaw<{ chunk: Buffer }[]>`
+      SELECT substring(data from ${start + 1} for ${end - start + 1}) AS chunk
+      FROM "Attachment" WHERE id = ${id}
+    `;
+    return new NextResponse(new Uint8Array(row?.chunk ?? Buffer.alloc(0)), {
+      status: 206,
+      headers,
+    });
   }
 
   headers.set("Content-Length", String(size));
-  const stream = Readable.toWeb(createReadStream(filePath)) as ReadableStream;
-  return new NextResponse(stream, { headers });
+
+  if (attachment.storageKey) {
+    const stream = Readable.toWeb(
+      createReadStream(resolveStoragePath(attachment.storageKey)),
+    ) as ReadableStream;
+    return new NextResponse(stream, { headers });
+  }
+
+  return new NextResponse(new Uint8Array(attachment.data ?? Buffer.alloc(0)), {
+    headers,
+  });
 }

@@ -194,6 +194,8 @@ export function AppShell({
             >
               <IconRail
                 unread={unread}
+                collapsed={collapsed && !hidePanel}
+                onExpand={togglePanel}
                 onNavigate={() => setMobileOpen(false)}
                 onInvite={() => {
                   setMobileOpen(false);

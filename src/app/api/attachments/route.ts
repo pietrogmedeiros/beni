@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { storageKey, size } = await saveUpload(file);
+  const { storageKey, data, size } = await saveUpload(file);
 
   try {
     const attachment = await db.attachment.create({
@@ -61,6 +61,8 @@ export async function POST(request: Request) {
         mimeType,
         size,
         storageKey,
+        // o Prisma tipa Bytes como Uint8Array; Buffer é um, mas o tipo é estrito
+        data: data ? new Uint8Array(data) : null,
         uploadedById: user.id,
       },
     });
