@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { currentWorkspace, requireUser } from "@/lib/auth";
-import { MAX_BULK_TASKS, parseBulkTasks, type ParsedTask } from "@/lib/bulk-parse";
+import {
+  detectBulkMode,
+  MAX_BULK_TASKS,
+  parseBulkTasks,
+  type BulkMode,
+  type ParsedTask,
+} from "@/lib/bulk-parse";
 import { syncTask } from "@/server/search";
 import { PALETTE } from "@/lib/constants";
 
@@ -19,6 +25,8 @@ export type BulkPreview = {
   unknownPeople: string[];
   /** Quantas linhas ficaram de fora por causa do limite. */
   ignored: number;
+  /** Formato usado na leitura — a tela mostra e deixa trocar. */
+  mode: BulkMode;
 };
 
 function normalize(value: string) {
@@ -37,6 +45,7 @@ function normalize(value: string) {
 export async function previewBulkTasks(
   projectId: string,
   text: string,
+  mode: BulkMode | "auto" = "auto",
 ): Promise<BulkPreview> {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
@@ -45,7 +54,8 @@ export async function previewBulkTasks(
   });
   if (!project) throw new Error("Projeto não encontrado");
 
-  const todas = parseBulkTasks(text);
+  const resolvido = mode === "auto" ? detectBulkMode(text) : mode;
+  const todas = parseBulkTasks(text, new Date(), resolvido);
   const parsed = todas.slice(0, MAX_BULK_TASKS);
   const ignored = todas.length - parsed.length;
 
@@ -80,7 +90,7 @@ export async function previewBulkTasks(
     return { ...task, assigneeId: match.user.id, assigneeName: match.user.name };
   });
 
-  return { tasks, unknownPeople, ignored };
+  return { tasks, unknownPeople, ignored, mode: resolvido };
 }
 
 /**
@@ -89,7 +99,11 @@ export async function previewBulkTasks(
  * O texto é reinterpretado aqui em vez de confiar no que o navegador mandou:
  * a pré-visualização é uma cortesia da interface, não a fonte da verdade.
  */
-export async function createBulkTasks(projectId: string, text: string) {
+export async function createBulkTasks(
+  projectId: string,
+  text: string,
+  mode: BulkMode | "auto" = "auto",
+) {
   const user = await requireUser();
   const workspace = await currentWorkspace();
 
@@ -99,7 +113,7 @@ export async function createBulkTasks(projectId: string, text: string) {
   });
   if (!project) throw new Error("Projeto não encontrado");
 
-  const { tasks } = await previewBulkTasks(projectId, text);
+  const { tasks } = await previewBulkTasks(projectId, text, mode);
   if (tasks.length === 0) return { created: 0, subtasks: 0 };
 
   const status = await db.taskStatus.findFirst({
@@ -153,6 +167,7 @@ export async function createBulkTasks(projectId: string, text: string) {
         projectId,
         number,
         title: task.title,
+        description: task.description,
         statusId: status.id,
         type: (task.type ?? "TASK") as never,
         priority: (task.priority ?? "NONE") as never,

@@ -25,8 +25,11 @@
  */
 export const MAX_BULK_TASKS = 200;
 
+export type BulkMode = "linha" | "bloco" | "titulo";
+
 export type ParsedTask = {
   title: string;
+  description: string | null;
   priority: "URGENT" | "HIGH" | "MEDIUM" | "LOW" | null;
   type: "TASK" | "BUG" | "STORY" | "EPIC" | "CHORE" | null;
   assigneeHint: string | null;
@@ -166,7 +169,140 @@ function isSubtaskLine(raw: string) {
   return false;
 }
 
-export function parseBulkTasks(input: string, today = new Date()): ParsedTask[] {
+/**
+ * Linha que abre uma tarefa num documento: `TAREFA 1:`, `Etapa 2 -`,
+ * `Lote 3.`, ou um título de Markdown. O número é obrigatório justamente para
+ * não confundir com uma frase qualquer que comece com maiúscula.
+ */
+const HEADING = /^(?:#{1,6}\s+.+|[A-Za-zÀ-ÿ]{3,20}\s*\d{1,3}\s*[:.)\-–—]\s*.*)$/;
+
+function isHeading(line: string) {
+  return HEADING.test(line.trim());
+}
+
+/**
+ * Descobre o formato do texto colado.
+ *
+ * Lista curta vem uma tarefa por linha. Documento vem em blocos separados por
+ * linha em branco, com um título e um parágrafo embaixo — e aí quebrar por
+ * linha transforma cada frase numa tarefa, que foi como esta função nasceu.
+ *
+ * A regra é conservadora: só é "bloco" quando existe linha em branco separando
+ * trechos E algum desses trechos tem mais de uma linha. Uma lista com linhas em
+ * branco entre os itens continua sendo uma tarefa por linha.
+ */
+export function detectBulkMode(input: string): BulkMode {
+  const lines = input.split(/\r?\n/).filter((l) => l.trim());
+
+  // Documento com cabeçalhos numerados: cada cabeçalho abre uma tarefa e o que
+  // vem embaixo é a descrição dela. Sem isto, cada parágrafo de explicação
+  // viraria uma tarefa solta — foi o que aconteceu com "Descritivo. Cria as 11
+  // propriedades…" virando tarefa.
+  const headings = lines.filter(isHeading).length;
+  if (headings >= 2 && headings < lines.length) return "titulo";
+
+  const blocks = input
+    .split(/\n\s*\n/)
+    .map((b) => b.split(/\r?\n/).filter((l) => l.trim()))
+    .filter((b) => b.length > 0);
+
+  if (blocks.length < 2) return "linha";
+
+  const multiline = blocks.filter(
+    (b) => b.filter((l) => !/^\s+/.test(l)).length > 1,
+  ).length;
+  return multiline >= 1 ? "bloco" : "linha";
+}
+
+/**
+ * Cada bloco separado por linha em branco vira uma tarefa: a primeira linha é o
+ * título, o resto vira descrição. Linhas indentadas ou com marcador viram
+ * subtarefas, como no modo por linha.
+ */
+function parseBlocks(input: string, today: Date): ParsedTask[] {
+  const blocks = input.split(/\n\s*\n/);
+  const tasks: ParsedTask[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length === 0) continue;
+
+    const [first, ...rest] = lines;
+    const [task] = parseBulkTasks(first, today, "linha");
+    if (!task) continue;
+
+    const subtasks: string[] = [];
+    const descricao: string[] = [];
+    for (const line of rest) {
+      if (/^\s{2,}/.test(line) || /^\s*[-*•·]\s+/.test(line) || /^\s*\[[ xX]?\]/.test(line)) {
+        subtasks.push(stripBullet(line).slice(0, 200));
+      } else {
+        descricao.push(line.trim());
+      }
+    }
+
+    task.subtasks.push(...subtasks);
+    task.description = descricao.length ? descricao.join("\n") : null;
+    tasks.push(task);
+  }
+
+  return tasks;
+}
+
+/**
+ * Cabeçalho abre tarefa; tudo até o próximo cabeçalho é descrição dela.
+ * Linhas com marcador viram subtarefas, como nos outros modos.
+ */
+function parseHeadings(input: string, today: Date): ParsedTask[] {
+  const lines = input.split(/\r?\n/);
+  const tasks: ParsedTask[] = [];
+  let descricao: string[] = [];
+
+  const fechar = () => {
+    const atual = tasks[tasks.length - 1];
+    if (atual && descricao.length) {
+      atual.description = descricao.join("\n").trim() || null;
+    }
+    descricao = [];
+  };
+
+  for (const raw of lines) {
+    if (!raw.trim()) continue;
+
+    if (isHeading(raw)) {
+      fechar();
+      const [task] = parseBulkTasks(raw.replace(/^#{1,6}\s+/, ""), today, "linha");
+      if (task) tasks.push(task);
+      continue;
+    }
+
+    if (tasks.length === 0) {
+      // texto antes do primeiro cabeçalho: vira uma tarefa por linha
+      const [task] = parseBulkTasks(raw, today, "linha");
+      if (task) tasks.push(task);
+      continue;
+    }
+
+    if (/^\s{2,}/.test(raw) || /^\s*[-*•·]\s+/.test(raw) || /^\s*\[[ xX]?\]/.test(raw)) {
+      tasks[tasks.length - 1].subtasks.push(stripBullet(raw).slice(0, 200));
+    } else {
+      descricao.push(raw.trim());
+    }
+  }
+  fechar();
+
+  return tasks;
+}
+
+export function parseBulkTasks(
+  input: string,
+  today = new Date(),
+  mode: BulkMode | "auto" = "auto",
+): ParsedTask[] {
+  const resolved = mode === "auto" ? detectBulkMode(input) : mode;
+  if (resolved === "bloco") return parseBlocks(input, today);
+  if (resolved === "titulo") return parseHeadings(input, today);
+
   const lines = input.split(/\r?\n/);
   const tasks: ParsedTask[] = [];
 
@@ -183,6 +319,7 @@ export function parseBulkTasks(input: string, today = new Date()): ParsedTask[] 
 
     const task: ParsedTask = {
       title: content,
+      description: null,
       priority: null,
       type: null,
       assigneeHint: null,

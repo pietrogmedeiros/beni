@@ -8,7 +8,7 @@ import {
   previewBulkTasks,
   type BulkPreview,
 } from "@/server/actions/bulk-tasks";
-import { MAX_BULK_TASKS } from "@/lib/bulk-parse";
+import { MAX_BULK_TASKS, type BulkMode } from "@/lib/bulk-parse";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PRIORITY_META, TASK_TYPE_META } from "@/lib/constants";
-import { formatDate, pluralize } from "@/lib/utils";
+import { cn, formatDate, pluralize } from "@/lib/utils";
 
 /** Quantos cartões a prévia desenha; o resto é criado do mesmo jeito. */
 const VISIVEIS = 60;
@@ -60,6 +60,8 @@ export function BulkCreateDialog({
 }) {
   const [projectId, setProjectId] = useState(defaultProjectId ?? projects[0]?.id ?? "");
   const [text, setText] = useState("");
+  // "auto" deixa o Beni decidir pelo formato do texto; a pessoa pode discordar
+  const [mode, setMode] = useState<BulkMode | "auto">("auto");
   const [preview, setPreview] = useState<BulkPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, startSaving] = useTransition();
@@ -75,7 +77,7 @@ export function BulkCreateDialog({
         return;
       }
       setLoading(true);
-      previewBulkTasks(projectId, text)
+      previewBulkTasks(projectId, text, mode)
         .then((result) => alive && setPreview(result))
         .catch(() => alive && setPreview(null))
         .finally(() => alive && setLoading(false));
@@ -85,7 +87,7 @@ export function BulkCreateDialog({
       alive = false;
       clearTimeout(timer);
     };
-  }, [open, projectId, text]);
+  }, [open, projectId, text, mode]);
 
   const total = preview?.tasks.length ?? 0;
   const subtotal = preview?.tasks.reduce((sum, t) => sum + t.subtasks.length, 0) ?? 0;
@@ -93,7 +95,7 @@ export function BulkCreateDialog({
   function confirm() {
     startSaving(async () => {
       try {
-        const { created, subtasks } = await createBulkTasks(projectId, text);
+        const { created, subtasks } = await createBulkTasks(projectId, text, mode);
         toast.success(
           pluralize(created, "tarefa criada", "tarefas criadas") +
             (subtasks ? ` e ${pluralize(subtasks, "subtarefa", "subtarefas")}` : ""),
@@ -128,6 +130,10 @@ export function BulkCreateDialog({
               <Select
                 value={projectId}
                 onValueChange={(v) => v && setProjectId(v)}
+                // sem este mapa o Base UI mostra o valor cru — no caso, o id
+                items={Object.fromEntries(
+                  projects.map((p) => [p.id, `${p.key} · ${p.name}`]),
+                )}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Escolha o projeto" />
@@ -143,7 +149,33 @@ export function BulkCreateDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="bulk-text">Texto</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="bulk-text">Texto</Label>
+                <div className="flex gap-0.5 rounded-lg border p-0.5">
+                  {(
+                    [
+                      { id: "auto", label: "Automático" },
+                      { id: "linha", label: "Por linha" },
+                      { id: "titulo", label: "Por título" },
+                      { id: "bloco", label: "Por parágrafo" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setMode(option.id)}
+                      className={cn(
+                        "rounded-md px-1.5 py-0.5 text-[10px] transition",
+                        mode === option.id
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Textarea
                 id="bulk-text"
                 value={text}
@@ -180,13 +212,34 @@ export function BulkCreateDialog({
                   Marcadores (<code>-</code>, <code>1.</code>,{" "}
                   <code>[ ]</code>) são ignorados — cole a ata como está
                 </li>
+                <li className="pt-1">
+                  <strong className="text-foreground">Formato:</strong> lista
+                  curta vira uma tarefa por linha. Documento com cabeçalhos
+                  numerados (<code>TAREFA 1:</code>, <code>Etapa 2 -</code>) abre
+                  uma tarefa por cabeçalho e usa o texto abaixo como descrição.
+                  Blocos separados por linha em branco viram uma tarefa cada.
+                  O Beni escolhe sozinho e diz o que escolheu — se errar, troque
+                  no seletor ao lado.
+                </li>
               </ul>
             </details>
           </div>
 
           <div className="flex min-h-0 flex-col">
             <div className="mb-1.5 flex items-center justify-between">
-              <Label>Pré-visualização</Label>
+              <Label>
+                Pré-visualização
+                {preview && mode === "auto" && (
+                  <span className="ml-1.5 font-normal text-muted-foreground">
+                    ·{" "}
+                    {preview.mode === "titulo"
+                      ? "li por títulos"
+                      : preview.mode === "bloco"
+                        ? "li por parágrafos"
+                        : "li por linha"}
+                  </span>
+                )}
+              </Label>
               {loading && (
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
               )}
@@ -269,6 +322,12 @@ export function BulkCreateDialog({
                             </span>
                           ))}
                         </div>
+
+                        {task.description && (
+                          <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+                            {task.description}
+                          </p>
+                        )}
 
                         {task.subtasks.length > 0 && (
                           <ul className="mt-1.5 space-y-0.5 border-l pl-2.5 text-xs text-muted-foreground">
