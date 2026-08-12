@@ -69,7 +69,7 @@ import {
 } from "@/server/actions/chat";
 import { RelativeTime } from "@/components/relative-time";
 import { cn, initials, readableOn } from "@/lib/utils";
-import { withBase } from "@/lib/base-path";
+import { useChatStream } from "@/lib/chat-stream";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -140,25 +140,13 @@ export function ChatScreen({
   }, []);
 
   // tempo real: recarrega o canal aberto e a lista quando algo muda
-  useEffect(() => {
-    const source = new EventSource(withBase("/api/chat/stream"));
-
-    source.onmessage = (event) => {
-      const data = JSON.parse(event.data) as {
-        type: string;
-        channelId?: string;
-      };
-      if (data.type === "ready") return;
-
-      void refreshChannels();
-      if (data.channelId && data.channelId === activeId) {
-        void loadChannel(data.channelId).then(setChannel);
-        void markChannelRead(data.channelId);
-      }
-    };
-
-    return () => source.close();
-  }, [activeId, refreshChannels]);
+  useChatStream((events) => {
+    void refreshChannels();
+    if (activeId && events.some((e) => e.channelId === activeId)) {
+      void loadChannel(activeId).then(setChannel);
+      void markChannelRead(activeId);
+    }
+  });
 
   const totalUnread = channels.reduce((sum, c) => sum + c.unread, 0);
   useEffect(() => {

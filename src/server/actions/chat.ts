@@ -75,25 +75,46 @@ export async function listChannels(): Promise<ChannelSummary[]> {
     },
   });
 
-  const summaries = await Promise.all(
-    memberships.map(async (m) => {
+  // Duas consultas para todos os canais, em vez de duas por canal: com o
+  // servidor a centenas de milissegundos de distância, 2N idas ao banco eram
+  // o grosso do tempo de abrir a barra lateral.
+  const [unreadByChannel, mentionRows] = await Promise.all([
+    memberships.length === 0
+      ? []
+      : db.message.groupBy({
+          by: ["channelId"],
+          _count: { _all: true },
+          where: {
+            authorId: { not: user.id },
+            OR: memberships.map((m) => ({
+              channelId: m.channelId,
+              createdAt: { gt: m.lastReadAt },
+            })),
+          },
+        }),
+    db.mention.findMany({
+      where: { userId: user.id, readAt: null },
+      select: { message: { select: { channelId: true } } },
+    }),
+  ]);
+
+  const unreadOf = new Map(
+    unreadByChannel.map((row) => [row.channelId, row._count._all]),
+  );
+  const mentionsOf = new Map<string, number>();
+  for (const row of mentionRows) {
+    const id = row.message.channelId;
+    mentionsOf.set(id, (mentionsOf.get(id) ?? 0) + 1);
+  }
+
+  const summaries = memberships.map((m) => {
       const partner =
         m.channel.kind === "DIRECT"
           ? (m.channel.members.find((x) => x.userId !== user.id)?.user ?? null)
           : null;
 
-      const [unread, mentions] = await Promise.all([
-        db.message.count({
-          where: {
-            channelId: m.channelId,
-            createdAt: { gt: m.lastReadAt },
-            authorId: { not: user.id },
-          },
-        }),
-        db.mention.count({
-          where: { userId: user.id, readAt: null, message: { channelId: m.channelId } },
-        }),
-      ]);
+      const unread = unreadOf.get(m.channelId) ?? 0;
+      const mentions = mentionsOf.get(m.channelId) ?? 0;
 
       const last = m.channel.messages[0];
 
@@ -111,8 +132,7 @@ export async function listChannels(): Promise<ChannelSummary[]> {
           ? { id: partner.id, name: partner.name, avatarColor: partner.avatarColor }
           : null,
       } satisfies ChannelSummary;
-    }),
-  );
+  });
 
   return summaries.sort((a, b) =>
     (b.lastMessageAt ?? "").localeCompare(a.lastMessageAt ?? ""),
@@ -526,20 +546,24 @@ export async function unreadTotals() {
     select: { channelId: true, lastReadAt: true },
   });
 
-  let unread = 0;
-  for (const m of memberships) {
-    unread += await db.message.count({
-      where: {
-        channelId: m.channelId,
-        createdAt: { gt: m.lastReadAt },
-        authorId: { not: user.id },
-      },
-    });
-  }
-
-  const mentions = await db.mention.count({
-    where: { userId: user.id, readAt: null },
-  });
+  // Uma consulta só, não uma por canal. Cada canal tem seu próprio "lido até",
+  // então o corte vai como uma lista de condições em OR. A versão anterior
+  // fazia N idas ao banco em série — e como cada aba aberta refazia isso a
+  // cada mensagem do time, o custo crescia com abas × canais × mensagens.
+  const [unread, mentions] = await Promise.all([
+    memberships.length === 0
+      ? 0
+      : db.message.count({
+          where: {
+            authorId: { not: user.id },
+            OR: memberships.map((m) => ({
+              channelId: m.channelId,
+              createdAt: { gt: m.lastReadAt },
+            })),
+          },
+        }),
+    db.mention.count({ where: { userId: user.id, readAt: null } }),
+  ]);
 
   return { unread, mentions };
 }

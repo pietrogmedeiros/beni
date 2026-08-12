@@ -46,7 +46,7 @@ import {
   type RecentTask,
 } from "@/server/actions/notifications";
 import { cn, initials, readableOn } from "@/lib/utils";
-import { withBase } from "@/lib/base-path";
+import { useChatStream } from "@/lib/chat-stream";
 import type { UserDTO } from "@/server/queries";
 
 /**
@@ -301,14 +301,17 @@ function NotificationsMenu({ onOpenTask }: { onOpenTask: (id: string) => void })
         setCount(n.length);
       });
     load();
-
-    const source = new EventSource(withBase("/api/chat/stream"));
-    source.onmessage = () => load();
     return () => {
       alive = false;
-      source.close();
     };
   }, []);
+
+  useChatStream(() => {
+    notifications().then((n) => {
+      setItems(n);
+      setCount(n.length);
+    });
+  });
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>

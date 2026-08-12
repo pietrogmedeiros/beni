@@ -25,7 +25,7 @@ import { InviteDialog } from "@/components/app-shell/invite-dialog";
 import { BulkCreateDialog } from "@/components/task/bulk-create-dialog";
 import { unreadTotals } from "@/server/actions/chat";
 import { cn } from "@/lib/utils";
-import { withBase } from "@/lib/base-path";
+import { useChatStream } from "@/lib/chat-stream";
 import type { UserDTO } from "@/server/queries";
 
 const STORAGE_KEY = "beni:panel-collapsed";
@@ -89,20 +89,18 @@ export function AppShell({
     setMobileOpen(false);
   }, [pathname]);
 
-  // contador de não lidas do chat, alimentado pelo mesmo fluxo SSE
+  // contador de não lidas do chat, alimentado pelo fluxo SSE compartilhado
   useEffect(() => {
     let alive = true;
-    const load = () => {
-      unreadTotals().then((t) => alive && setUnread(t));
-    };
-    load();
-    const source = new EventSource(withBase("/api/chat/stream"));
-    source.onmessage = () => load();
+    unreadTotals().then((t) => alive && setUnread(t));
     return () => {
       alive = false;
-      source.close();
     };
   }, []);
+
+  useChatStream(() => {
+    unreadTotals().then(setUnread);
+  });
 
   const togglePanel = useCallback(() => {
     setCollapsed((c) => {

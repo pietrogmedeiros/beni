@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, dbSchema } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { resolveStoragePath, uploadSize } from "@/lib/uploads";
 
@@ -100,11 +100,15 @@ export async function GET(
     }
 
     // `substring` do Postgres corta antes de mandar: arrastar a linha do tempo
-    // de um vídeo não carrega o arquivo inteiro na memória do servidor
-    const [row] = await db.$queryRaw<{ chunk: Buffer }[]>`
-      SELECT substring(data from ${start + 1} for ${end - start + 1}) AS chunk
-      FROM "Attachment" WHERE id = ${id}
-    `;
+    // de um vídeo não carrega o arquivo inteiro na memória do servidor.
+    // O schema vem da configuração, nunca do pedido; o resto vai parametrizado.
+    const [row] = await db.$queryRawUnsafe<{ chunk: Buffer }[]>(
+      `SELECT substring(data from $1 for $2) AS chunk
+       FROM "${dbSchema()}"."Attachment" WHERE id = $3`,
+      start + 1,
+      end - start + 1,
+      id,
+    );
     return new NextResponse(new Uint8Array(row?.chunk ?? Buffer.alloc(0)), {
       status: 206,
       headers,

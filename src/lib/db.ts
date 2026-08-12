@@ -7,6 +7,18 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+/**
+ * Schema em uso. O cliente do Prisma qualifica as tabelas sozinho, mas uma
+ * consulta crua não: sem isto, `SELECT ... FROM "Attachment"` procuraria no
+ * `public` mesmo com o app inteiro morando no schema `beni`.
+ *
+ * É função, e não constante: `next build` importa este módulo antes de existir
+ * banco configurado, e resolver a URL ali derruba o build inteiro.
+ */
+export function dbSchema() {
+  return new URL(resolveDatabaseUrl()).searchParams.get("schema") ?? "public";
+}
+
 function createClient() {
   const url = resolveDatabaseUrl();
   // O `?schema=` da URL é convenção do Prisma; o driver `pg` o ignora. Com

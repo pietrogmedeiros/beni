@@ -36,7 +36,7 @@ import { sectionForPath } from "@/components/app-shell/icon-rail";
 import { listChannels, type ChannelSummary } from "@/server/actions/chat";
 import { PROJECT_VIEWS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { withBase } from "@/lib/base-path";
+import { useChatStream } from "@/lib/chat-stream";
 import type { UserDTO } from "@/server/queries";
 
 type ProjectItem = {
@@ -83,17 +83,15 @@ export function NavPanel({
 
   useEffect(() => {
     let alive = true;
-    const load = () => {
-      listChannels().then((c) => alive && setChannels(c));
-    };
-    load();
-    const source = new EventSource(withBase("/api/chat/stream"));
-    source.onmessage = () => load();
+    listChannels().then((c) => alive && setChannels(c));
     return () => {
       alive = false;
-      source.close();
     };
   }, []);
+
+  useChatStream(() => {
+    listChannels().then(setChannels);
+  });
 
   return (
     <aside className="flex h-full w-[268px] shrink-0 flex-col border-r bg-sidebar/60">
@@ -349,6 +347,10 @@ function ProjectNavItem({
         <Link
           href={`/p/${project.id}/board`}
           onClick={onNavigate}
+          // A barra lista todos os projetos, e cada um pré-carregado é uma ida
+          // ao servidor no primeiro render de qualquer tela. As abas de visão
+          // do projeto aberto continuam pré-carregando — ali o ganho paga.
+          prefetch={false}
           className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-[13px]"
         >
           <span
