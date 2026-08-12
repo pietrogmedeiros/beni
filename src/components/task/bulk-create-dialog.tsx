@@ -63,6 +63,7 @@ export function BulkCreateDialog({
   // "auto" deixa o Beni decidir pelo formato do texto; a pessoa pode discordar
   const [mode, setMode] = useState<BulkMode | "auto">("auto");
   const [preview, setPreview] = useState<BulkPreview | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, startSaving] = useTransition();
 
@@ -74,12 +75,28 @@ export function BulkCreateDialog({
       if (!alive) return;
       if (!open || !projectId || !text.trim()) {
         setPreview(null);
+        setErro(null);
         return;
       }
       setLoading(true);
       previewBulkTasks(projectId, text, mode)
-        .then((result) => alive && setPreview(result))
-        .catch(() => alive && setPreview(null))
+        .then((result) => {
+          if (!alive) return;
+          setPreview(result);
+          setErro(null);
+        })
+        .catch((e: Error) => {
+          if (!alive) return;
+          setPreview(null);
+          // Engolir esta falha deixava a tela dizendo "nada para criar" com o
+          // texto colado à vista — parecia que o Beni não entendeu o conteúdo,
+          // quando na verdade a leitura nem chegou a acontecer.
+          setErro(
+            /Server Action|deployment/i.test(e.message)
+              ? "Esta aba é de uma versão anterior do Beni. Recarregue a página (⌘R) e cole de novo."
+              : e.message || "Não consegui ler o texto.",
+          );
+        })
         .finally(() => alive && setLoading(false));
     }, 350);
 
@@ -246,7 +263,12 @@ export function BulkCreateDialog({
             </div>
 
             <div className="thin-scrollbar max-h-[34vh] min-h-40 flex-1 space-y-1.5 overflow-y-auto rounded-lg border p-2">
-              {!preview || total === 0 ? (
+              {erro ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 px-4 py-8 text-center">
+                  <AlertTriangle className="size-5 text-destructive" />
+                  <p className="text-sm text-destructive">{erro}</p>
+                </div>
+              ) : !preview || total === 0 ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
                   <Sparkles className="size-5 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">

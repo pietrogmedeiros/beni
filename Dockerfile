@@ -48,7 +48,6 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV BASE_PATH=${BASE_PATH}
 ENV NEXT_PUBLIC_BASE_PATH=${BASE_PATH}
-
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
@@ -75,6 +74,13 @@ VOLUME ["/app/uploads"]
 
 COPY --chown=nextjs:nodejs docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Carimbo do build, exposto em /api/version. É a última camada de propósito:
+# quando tudo antes vem do cache, a imagem é a mesma e o carimbo continua o
+# mesmo — o que também é a resposta certa. Serve para conferir, de fora, se uma
+# implantação realmente pegou, em vez de caçar diferenças na tela.
+RUN date -u +%Y-%m-%dT%H:%M:%SZ > /app/.build-stamp \
+  && chown nextjs:nodejs /app/.build-stamp
 
 USER nextjs
 EXPOSE 3000
