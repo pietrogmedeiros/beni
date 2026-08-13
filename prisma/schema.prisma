@@ -88,6 +88,7 @@ model User {
   approvals     Approval[]     @relation("ApprovalRequester")
   attachments   Attachment[]   @relation("AttachmentUploader")
   apiTokens     ApiToken[]
+  oauthCodes    OAuthCode[]
   shares        ProjectShare[] @relation("ShareCreator")
   channels      ChannelMember[]
   messages      Message[]
@@ -389,6 +390,40 @@ model TaskGithubLink {
 
 /// Pedido de aprovação enviado a um stakeholder por link público.
 /// O aprovador não precisa de conta: identifica-se pelo nome ao decidir.
+/// Cliente OAuth registrado dinamicamente.
+///
+/// O conector do Claude na web não aceita chave fixa: ele descobre o servidor
+/// de autorização, **se registra sozinho** (RFC 7591) e só então manda a pessoa
+/// autorizar. Sem esta tabela não há com quem trocar o código por um token.
+model OAuthClient {
+  id           String   @id @default(cuid())
+  clientId     String   @unique
+  clientSecret String?
+  name         String
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+}
+
+/// Código de autorização — vive segundos, entre o "autorizar" e a troca por
+/// token. Guarda o desafio PKCE para que interceptar o código não baste.
+model OAuthCode {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  clientId      String
+  userId        String
+  workspaceId   String
+  redirectUri   String
+  codeChallenge String
+  scope         String?
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
 /// Chave de acesso à API do Beni — é o que permite ao MCP (e a qualquer
 /// integração) agir em nome de uma pessoa sem usar a senha dela.
 ///

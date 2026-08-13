@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { ApiAuthError, authenticateRequest } from "@/server/api-auth";
 import { buildMcpServer, runMcpRequest } from "@/server/mcp-server";
+import { issuer } from "@/server/oauth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     caller = await autenticar(request);
   } catch (error) {
     const status = error instanceof ApiAuthError ? error.status : 401;
+    const base = await issuer();
     return NextResponse.json(
       {
         jsonrpc: "2.0",
@@ -47,7 +49,14 @@ export async function POST(request: Request) {
         },
         id: null,
       },
-      { status },
+      {
+        status,
+        headers: {
+          // é por este cabeçalho que o cliente descobre que existe OAuth aqui e
+          // onde encontrá-lo; sem ele, o conector só vê um 401 e desiste
+          "WWW-Authenticate": `Bearer resource_metadata="${base}/.well-known/oauth-protected-resource/api/mcp"`,
+        },
+      },
     );
   }
 

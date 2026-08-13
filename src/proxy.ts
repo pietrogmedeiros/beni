@@ -7,7 +7,15 @@ const COOKIE_NAME = "beni_session";
 const AUTH_PATHS = ["/login", "/register"];
 
 /** Rotas abertas: acessíveis sem conta (link de aprovação do stakeholder). */
-const OPEN_PATHS = ["/aprovar", "/compartilhar"];
+const OPEN_PATHS = [
+  "/aprovar",
+  "/compartilhar",
+  // descoberta e troca de token do OAuth: o cliente que chama aqui não tem
+  // sessão nenhuma — é justamente o que ele vem buscar
+  "/.well-known",
+  "/api/oauth/register",
+  "/api/oauth/token",
+];
 
 async function isValid(token: string | undefined) {
   if (!token || !process.env.AUTH_SECRET) return false;
