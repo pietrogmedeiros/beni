@@ -248,8 +248,29 @@ guardamos só o hash.
 
 Tarefas aceitam a referência curta (`WEB-12`) no lugar do id.
 
-O servidor **MCP** que consome essa API vive em `~/beni-mcp` — é o que dá ao
-Claude acesso ao workspace. Veja o README de lá.
+### Conectar o Claude
+
+São dois caminhos, conforme onde o Claude roda:
+
+**Claude na web (claude.ai)** — o Beni serve o próprio servidor MCP em
+`POST /api/mcp`. Em *Configurações → Conectores → Adicionar conector
+personalizado*, use:
+
+```
+https://app.benicio.space/api/mcp?token=beni_SUA_CHAVE
+```
+
+A chave vai na URL porque o cadastro de conector não tem onde pôr cabeçalho;
+`Authorization: Bearer` também é aceito, para clientes que tenham. Cada
+requisição é independente — não há sessão guardada em memória, o que importa
+num app que reinicia a cada implantação.
+
+**Claude Code (no seu computador)** — use o servidor por stdio em `~/beni-mcp`,
+que fala com esta mesma API. Veja o README de lá.
+
+Nos dois casos são as mesmas 12 ferramentas: ler workspace, projetos e tarefas,
+abrir uma tarefa por inteiro, "meu dia", buscar, criar (uma ou em massa por
+texto), atualizar, comentar, criar projeto e excluir.
 
 ### Deploy no EasyPanel
 
