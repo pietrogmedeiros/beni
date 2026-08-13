@@ -87,6 +87,7 @@ model User {
   activities    Activity[]
   approvals     Approval[]     @relation("ApprovalRequester")
   attachments   Attachment[]   @relation("AttachmentUploader")
+  apiTokens     ApiToken[]
   shares        ProjectShare[] @relation("ShareCreator")
   channels      ChannelMember[]
   messages      Message[]
@@ -103,8 +104,9 @@ model Workspace {
   /// Token do GitHub (PAT) guardado cifrado — usado para repositórios privados
   githubToken String?
 
-  members  Membership[]
-  projects Project[]
+  members   Membership[]
+  projects  Project[]
+  apiTokens ApiToken[]
   tags     Tag[]
   channels Channel[]
 }
@@ -387,6 +389,29 @@ model TaskGithubLink {
 
 /// Pedido de aprovação enviado a um stakeholder por link público.
 /// O aprovador não precisa de conta: identifica-se pelo nome ao decidir.
+/// Chave de acesso à API do Beni — é o que permite ao MCP (e a qualquer
+/// integração) agir em nome de uma pessoa sem usar a senha dela.
+///
+/// Guardamos só o hash: o valor completo aparece uma única vez, na criação.
+/// Se vazar do lado de lá, revoga-se aqui sem trocar senha nenhuma.
+model ApiToken {
+  id          String    @id @default(cuid())
+  workspaceId String
+  userId      String
+  name        String
+  tokenHash   String    @unique
+  /// Últimos 4 caracteres, só para a pessoa reconhecer qual é qual na lista.
+  hint        String
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
 /// Arquivo anexado a uma tarefa.
 ///
 /// Por padrão o conteúdo fica aqui mesmo, em `data`: assim o anexo sobrevive a

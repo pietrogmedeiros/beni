@@ -228,6 +228,29 @@ dnd-kit · Recharts · jose (JWT) · bcrypt.
 - O `docker-compose.yml` sobe um Postgres por conveniência; em produção aponte
   `DATABASE_URL` para o seu banco gerenciado e remova o serviço `db`.
 
+### API e MCP
+
+O Beni expõe uma API em `/api/v1`, autenticada por chave (`Authorization:
+Bearer beni_…`). As chaves são criadas em **Configurações → Chaves de acesso**,
+aparecem uma única vez e podem ser revogadas sem trocar a senha de ninguém —
+guardamos só o hash.
+
+| Rota | O que faz |
+| --- | --- |
+| `GET /api/v1/workspace` | workspace, quem é o dono da chave e o time |
+| `GET /api/v1/projects` | projetos, status válidos e sprints · `POST` cria projeto |
+| `GET /api/v1/tasks` | lista com filtros (`project`, `status=aberto`, `assignee=eu`, `q`, `overdue`) · `POST` cria |
+| `GET /api/v1/tasks/:ref` | tarefa por inteiro · `PATCH` altera · `DELETE` apaga |
+| `POST /api/v1/tasks/:ref/comments` | comenta |
+| `POST /api/v1/tasks/bulk` | cria em massa a partir de texto (`dryRun` só simula) |
+| `GET /api/v1/search?q=` | busca (Elasticsearch quando configurado) |
+| `GET /api/version` | carimbo do build no ar |
+
+Tarefas aceitam a referência curta (`WEB-12`) no lugar do id.
+
+O servidor **MCP** que consome essa API vive em `~/beni-mcp` — é o que dá ao
+Claude acesso ao workspace. Veja o README de lá.
+
 ### Deploy no EasyPanel
 
 1. **Fonte**: GitHub, ramo `main`, caminho `/`, build por **Dockerfile** (não Nixpacks).

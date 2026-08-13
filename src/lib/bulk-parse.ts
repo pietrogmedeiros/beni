@@ -154,6 +154,32 @@ function parseDate(text: string, today: Date): { iso: string; matched: string } 
   return null;
 }
 
+/**
+ * Padrão que casa o trecho ignorando acentos.
+ *
+ * O reconhecimento de data trabalha sobre o texto sem acento, então "amanha"
+ * casa com a regra e devolve "amanhã" como trecho reconhecido — que não existe
+ * no título original e sobraria lá, dentro do título da tarefa.
+ */
+function accentInsensitive(text: string) {
+  const classes: Record<string, string> = {
+    a: "[aáàâã]",
+    e: "[eéèê]",
+    i: "[iíì]",
+    o: "[oóòôõ]",
+    u: "[uúù]",
+    c: "[cç]",
+  };
+  return text
+    .split("")
+    .map((ch) => {
+      const plain = stripAccents(ch).toLowerCase();
+      if (classes[plain]) return classes[plain];
+      return ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    })
+    .join("");
+}
+
 /** Tira marcadores de lista, numeração e caixas de seleção do início da linha. */
 function stripBullet(line: string) {
   return line
@@ -382,11 +408,7 @@ export function parseBulkTasks(
     if (date) {
       task.dueDate = date.iso;
       task.matched.push(date.matched);
-      const re = new RegExp(
-        date.matched.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-        "i",
-      );
-      task.title = task.title.replace(re, "");
+      task.title = task.title.replace(new RegExp(accentInsensitive(date.matched), "i"), "");
     }
 
     task.title = task.title.replace(/\s{2,}/g, " ").trim();

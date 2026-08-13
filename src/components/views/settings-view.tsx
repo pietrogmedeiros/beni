@@ -20,6 +20,7 @@ import {
   updateWorkspaceName,
 } from "@/server/actions/projects";
 import { logoutAction } from "@/server/actions/auth";
+import { ApiTokensCard } from "@/components/settings/api-tokens-card";
 import { GithubTokenCard } from "@/components/views/github-token-card";
 import type { UserDTO } from "@/server/queries";
 
@@ -278,6 +279,8 @@ export function SettingsView({
         </section>
 
         <GithubTokenCard preview={githubTokenPreview} />
+
+        <ApiTokensCard />
 
         <section className="rounded-xl border bg-card p-5">
           <h2 className="text-sm font-semibold">Sessão</h2>
