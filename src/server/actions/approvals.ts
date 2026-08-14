@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { withBase } from "@/lib/base-path";
+import { avisarDecisaoDeAprovacao } from "@/server/notify";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 
 const APPROVAL_TTL_DAYS = 30;
@@ -207,6 +208,9 @@ export async function decideApproval(
       meta: { approverName: parsed.data.approverName } as never,
     },
   });
+
+  // quem pediu a aprovação precisa saber da decisão sem ficar recarregando
+  void avisarDecisaoDeAprovacao(approval.id);
 
   revalidatePath(`/aprovar/${parsed.data.token}`);
   revalidatePath("/", "layout");

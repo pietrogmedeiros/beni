@@ -21,6 +21,7 @@ import {
 } from "@/server/actions/projects";
 import { logoutAction } from "@/server/actions/auth";
 import { ApiTokensCard } from "@/components/settings/api-tokens-card";
+import { EmailPrefsCard } from "@/components/settings/email-prefs-card";
 import { GithubTokenCard } from "@/components/views/github-token-card";
 import type { UserDTO } from "@/server/queries";
 
@@ -279,6 +280,8 @@ export function SettingsView({
         </section>
 
         <GithubTokenCard preview={githubTokenPreview} />
+
+        <EmailPrefsCard />
 
         <ApiTokensCard />
 

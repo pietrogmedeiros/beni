@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { removeTaskFromIndex, syncTask } from "@/server/search";
+import { avisarAtribuicao } from "@/server/notify";
 
 async function assertProject(projectId: string) {
   const workspace = await currentWorkspace();
@@ -125,6 +126,7 @@ export async function createTask(input: CreateTaskInput) {
   });
 
   await logActivity(project.id, task.id, "task.created", { title: task.title });
+  if (task.assigneeId) void avisarAtribuicao(task.id, user.id);
   void syncTask(task.id);
   revalidatePath("/", "layout");
   return { id: task.id, number: task.number };
@@ -152,6 +154,7 @@ export type UpdateTaskInput = z.input<typeof updateSchema>;
 export async function updateTask(taskId: string, input: UpdateTaskInput) {
   const task = await assertTask(taskId);
   const data = updateSchema.parse(input);
+  const quem = await requireUser();
 
   let completedAt = undefined as Date | null | undefined;
   let progress = data.progress;
@@ -173,6 +176,11 @@ export async function updateTask(taskId: string, input: UpdateTaskInput) {
       to: next.name,
     });
   }
+
+  const anterior = await db.task.findUnique({
+    where: { id: taskId },
+    select: { assigneeId: true },
+  });
 
   await db.task.update({
     where: { id: taskId },
@@ -198,6 +206,11 @@ export async function updateTask(taskId: string, input: UpdateTaskInput) {
           : undefined,
     },
   });
+
+  // avisar por e-mail quem passou a ser responsável — sem segurar a resposta
+  if (data.assigneeId !== undefined && data.assigneeId !== anterior?.assigneeId) {
+    void avisarAtribuicao(taskId, quem.id);
+  }
 
   void syncTask(taskId);
   revalidatePath("/", "layout");

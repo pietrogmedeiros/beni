@@ -89,6 +89,12 @@ model User {
   attachments   Attachment[]   @relation("AttachmentUploader")
   notes         Note[]
   notificationsRead NotificationRead[]
+  emailsSent        EmailLog[]
+
+  /// Avisos por e-mail. Quem não quiser, desliga em Configurações.
+  emailOnAssign    Boolean @default(true)
+  emailOnApproval  Boolean @default(true)
+  emailDailyDigest Boolean @default(true)
   apiTokens     ApiToken[]
   oauthCodes    OAuthCode[]
   shares        ProjectShare[] @relation("ShareCreator")
@@ -393,6 +399,25 @@ model TaskGithubLink {
 
 /// Pedido de aprovação enviado a um stakeholder por link público.
 /// O aprovador não precisa de conta: identifica-se pelo nome ao decidir.
+/// E-mail já enviado.
+///
+/// A chave é o que o e-mail representa (tarefa X vencendo no dia Y), não um
+/// identificador novo. É o que impede o resumo diário de mandar duas vezes se
+/// o container reiniciar no meio do dia — e sem isso a primeira falha de
+/// infraestrutura viraria caixa de entrada duplicada para o time inteiro.
+model EmailLog {
+  id     String   @id @default(cuid())
+  userId String
+  kind   String
+  key    String
+  sentAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([sentAt])
+}
+
 /// Aviso já lido pela pessoa.
 ///
 /// Menção tem seu próprio `readAt`, mas aprovação decidida e prazo vencido não
