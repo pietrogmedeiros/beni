@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, Mail, Send } from "lucide-react";
 import {
   getEmailPrefs,
+  sendTestEmail,
   setEmailPref,
   type EmailPrefs,
 } from "@/server/actions/email-prefs";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
@@ -32,6 +34,7 @@ const OPCOES = [
 /** Preferências de e-mail — cada pessoa escolhe o que quer receber. */
 export function EmailPrefsCard() {
   const [prefs, setPrefs] = useState<EmailPrefs | null>(null);
+  const [testando, setTestando] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -70,6 +73,31 @@ export function EmailPrefsCard() {
               escolhas ficam salvas e passam a valer quando estiver.
             </p>
           )}
+
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm">Enviar um e-mail de teste</p>
+              <p className="text-xs text-muted-foreground">
+                Confirma que o servidor consegue mesmo falar com a sua caixa.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              disabled={testando}
+              onClick={async () => {
+                setTestando(true);
+                const r = await sendTestEmail();
+                setTestando(false);
+                if (r.ok) toast.success("Enviado — confira sua caixa de entrada");
+                else toast.error(r.erro);
+              }}
+            >
+              {testando ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              Testar
+            </Button>
+          </div>
 
           <div className="divide-y rounded-lg border">
             {OPCOES.map((o) => (
