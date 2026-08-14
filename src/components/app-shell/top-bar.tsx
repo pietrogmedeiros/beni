@@ -39,6 +39,7 @@ import {
 import { RelativeTime } from "@/components/relative-time";
 import { logoutAction } from "@/server/actions/auth";
 import {
+  dismissNotification,
   markAllNotificationsRead,
   notifications,
   recentTasks,
@@ -375,6 +376,14 @@ function NotificationsMenu({ onOpenTask }: { onOpenTask: (id: string) => void })
                   key={n.id}
                   className="items-start gap-2.5 py-2"
                   onClick={() => {
+                    // abrir o item é ter visto o aviso; deixá-lo na lista
+                    // depois disso é ruído que a pessoa já resolveu
+                    startTransition(async () => {
+                      await dismissNotification(n.id);
+                      const restantes = await notifications();
+                      setItems(restantes);
+                      setCount(restantes.length);
+                    });
                     if (n.taskId) onOpenTask(n.taskId);
                     else if (n.href) router.push(n.href);
                   }}

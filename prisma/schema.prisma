@@ -88,6 +88,7 @@ model User {
   approvals     Approval[]     @relation("ApprovalRequester")
   attachments   Attachment[]   @relation("AttachmentUploader")
   notes         Note[]
+  notificationsRead NotificationRead[]
   apiTokens     ApiToken[]
   oauthCodes    OAuthCode[]
   shares        ProjectShare[] @relation("ShareCreator")
@@ -392,6 +393,27 @@ model TaskGithubLink {
 
 /// Pedido de aprovação enviado a um stakeholder por link público.
 /// O aprovador não precisa de conta: identifica-se pelo nome ao decidir.
+/// Aviso já lido pela pessoa.
+///
+/// Menção tem seu próprio `readAt`, mas aprovação decidida e prazo vencido não
+/// são registros criados para notificar — são fatos que o painel deduz. Sem um
+/// lugar para marcar "já vi isto", eles reapareciam a cada recarga, e o botão
+/// "marcar tudo" parecia não fazer nada.
+///
+/// A chave carrega o que identifica o aviso, incluindo a data do prazo: se a
+/// tarefa for reagendada e vencer de novo, é um aviso novo, e deve avisar.
+model NotificationRead {
+  id     String   @id @default(cuid())
+  userId String
+  key    String
+  readAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+}
+
 /// Documento de anotações do projeto.
 ///
 /// O conteúdo é uma lista de **blocos** em JSON, não HTML. A anotação pode ser

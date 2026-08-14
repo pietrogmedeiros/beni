@@ -49,13 +49,24 @@ export type NotificationItem = {
  * Central de avisos: menções não lidas no chat, aprovações que você pediu e
  * já foram respondidas, e suas tarefas com prazo vencido.
  */
+/**
+ * Chave de um aviso.
+ *
+ * A do prazo carrega a data: reagendar a tarefa e vencer de novo é um aviso
+ * novo, e deve voltar a avisar. Sem isso, dispensar uma vez calaria aquela
+ * tarefa para sempre.
+ */
+function chaveOverdue(taskId: string, dueDate: Date | null) {
+  return `overdue:${taskId}:${dueDate?.toISOString().slice(0, 10) ?? "-"}`;
+}
+
 export async function notifications(): Promise<NotificationItem[]> {
   const user = await requireUser();
   const workspace = await currentWorkspace();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [mentions, approvals, overdue] = await Promise.all([
+  const [mentions, approvals, overdue, lidos] = await Promise.all([
     db.mention.findMany({
       where: { userId: user.id, readAt: null },
       include: {
@@ -92,7 +103,13 @@ export async function notifications(): Promise<NotificationItem[]> {
       orderBy: { dueDate: "asc" },
       take: 10,
     }),
+    db.notificationRead.findMany({
+      where: { userId: user.id },
+      select: { key: true },
+    }),
   ]);
+
+  const jaLido = new Set(lidos.map((l) => l.key));
 
   const items: NotificationItem[] = [
     ...mentions.map((m) => ({
@@ -117,7 +134,7 @@ export async function notifications(): Promise<NotificationItem[]> {
       createdAt: (a.decidedAt ?? a.createdAt).toISOString(),
     })),
     ...overdue.map((t) => ({
-      id: `overdue:${t.id}`,
+      id: chaveOverdue(t.id, t.dueDate),
       kind: "overdue" as const,
       title: "Prazo vencido",
       detail: `${t.project.key}-${t.number} · ${t.title}`,
@@ -127,15 +144,52 @@ export async function notifications(): Promise<NotificationItem[]> {
     })),
   ];
 
-  return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return items
+    .filter((i) => !jaLido.has(i.id))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Marca todas as menções como lidas (botão "marcar tudo como lido"). */
+/**
+ * Marca tudo como lido.
+ *
+ * Guarda a chave de cada aviso que está na tela, e não só as menções — era o
+ * que faltava: aprovação e prazo voltavam a cada recarga porque nada registrava
+ * que já tinham sido vistos.
+ */
 export async function markAllNotificationsRead() {
   const user = await requireUser();
-  await db.mention.updateMany({
-    where: { userId: user.id, readAt: null },
-    data: { readAt: new Date() },
+  const atuais = await notifications();
+
+  await Promise.all([
+    db.mention.updateMany({
+      where: { userId: user.id, readAt: null },
+      data: { readAt: new Date() },
+    }),
+    ...atuais.map((item) =>
+      db.notificationRead.upsert({
+        where: { userId_key: { userId: user.id, key: item.id } },
+        create: { userId: user.id, key: item.id },
+        update: {},
+      }),
+    ),
+  ]);
+}
+
+/** Dispensa um aviso só — usado ao abrir o item a que ele se refere. */
+export async function dismissNotification(key: string) {
+  const user = await requireUser();
+
+  if (key.startsWith("mention:")) {
+    await db.mention.updateMany({
+      where: { id: key.slice("mention:".length), userId: user.id },
+      data: { readAt: new Date() },
+    });
+  }
+
+  await db.notificationRead.upsert({
+    where: { userId_key: { userId: user.id, key } },
+    create: { userId: user.id, key },
+    update: {},
   });
 }
 
