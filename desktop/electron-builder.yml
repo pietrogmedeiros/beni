@@ -29,7 +29,10 @@ mac:
 
 dmg:
   title: Beni
-  artifactName: Beni-${version}-mac.dmg
+  # sem a versão no nome: o link de download do site aponta para
+  # releases/latest/download/Beni-mac.dmg, que só continua funcionando se o
+  # arquivo tiver sempre o mesmo nome. A versão vive no Info.plist e na tag.
+  artifactName: Beni-mac.dmg
   contents:
     - x: 140
       y: 190

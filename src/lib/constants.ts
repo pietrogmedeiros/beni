@@ -168,3 +168,15 @@ export const PROJECT_VIEWS = [
   { slug: "dashboard", label: "Painel", icon: "PieChart" },
   { slug: "notas", label: "Anotações", icon: "NotebookPen" },
 ] as const;
+
+/**
+ * Onde mora o app de macOS.
+ *
+ * Aponta para o "latest" do GitHub em vez de uma versão fixa: assim publicar
+ * uma versão nova não exige mexer no código nem implantar de novo. O arquivo
+ * não pode viver em `public/` — são 173 MB que entrariam na imagem do
+ * servidor e em todo build.
+ */
+export const DOWNLOAD_MAC =
+  process.env.NEXT_PUBLIC_DOWNLOAD_MAC ??
+  "https://github.com/pietrogmedeiros/beni/releases/latest/download/Beni-mac.dmg";

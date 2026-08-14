@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DesktopDownload } from "@/components/desktop-download";
 import { Progress } from "@/components/ui/progress";
 import { StatTile, ChartCard, BarList } from "@/components/charts/primitives";
 import { DynamicIcon } from "@/components/dynamic-icon";
@@ -100,6 +101,8 @@ export function HomeView({
   return (
     <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-6xl p-5">
+        <DesktopDownload />
+
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
