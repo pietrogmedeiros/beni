@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
 import { Progress } from "@/components/ui/progress";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useApp } from "@/components/app-shell/app-context";
@@ -42,14 +43,18 @@ export function ProjectsView({ projects }: { projects: ProjectSummary[] }) {
         </div>
 
         {projects.length === 0 ? (
-          <button
-            type="button"
-            onClick={openNewProject}
-            className="w-full rounded-xl border border-dashed py-20 text-sm text-muted-foreground transition hover:border-primary/50 hover:text-foreground"
-          >
-            <Plus className="mx-auto mb-2 size-6" />
-            Criar seu primeiro projeto
-          </button>
+          <EmptyState
+            pose="andando"
+            titulo="Nenhum projeto por aqui ainda"
+            descricao="Um projeto guarda as tarefas, o backlog e o prazo de uma entrega."
+            acao={
+              <Button onClick={openNewProject}>
+                <Plus className="size-4" />
+                Criar o primeiro
+              </Button>
+            }
+            className="rounded-xl border border-dashed py-16"
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {projects.map((p) => {

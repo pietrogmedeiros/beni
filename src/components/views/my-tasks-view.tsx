@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
+import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserAvatar } from "@/components/user-avatar";
@@ -120,9 +121,12 @@ export function MyTasksView({ tasks }: { tasks: TaskDTO[] }) {
 
       <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-8">
         {items.length === 0 && (
-          <p className="py-20 text-center text-sm text-muted-foreground">
-            Nada por aqui. Aproveite! 🎉
-          </p>
+          <EmptyState
+            pose="parado"
+            titulo="Nada na sua mesa agora"
+            descricao="Tarefas atribuídas a você aparecem aqui, ordenadas por prazo."
+            className="py-14"
+          />
         )}
 
         {byProject.map(({ project, list }) => (

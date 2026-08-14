@@ -3,6 +3,7 @@ import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import { db, dbSchema } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { isFeedbackAdmin } from "@/server/feedback";
 import { resolveStoragePath, uploadSize } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +11,10 @@ export const dynamic = "force-dynamic";
 /**
  * Entrega o arquivo de um anexo.
  *
- * Dois caminhos de acesso, nunca mais que isso:
+ * Caminhos de acesso, nunca mais que estes:
+ *  - ser quem enviou o arquivo;
  *  - sessão válida no workspace dono da tarefa;
+ *  - triar feedback, quando o anexo é print de um feedback;
  *  - `?token=` de uma aprovação ou de um compartilhamento **daquela mesma
  *    tarefa** — é o que permite ao stakeholder ver o vídeo sem ter conta.
  *
@@ -19,10 +22,26 @@ export const dynamic = "force-dynamic";
  * serve para pescar anexos de outras tarefas.
  */
 async function canRead(
-  attachment: { id: string; taskId: string | null; noteId: string | null },
+  attachment: {
+    id: string;
+    taskId: string | null;
+    noteId: string | null;
+    feedbackId: string | null;
+    uploadedById: string | null;
+  },
   token: string | null,
 ) {
   const session = await getSession();
+
+  // quem enviou sempre vê o que enviou — é o que permite conferir o print
+  // colado no formulário de feedback, que ainda não pertence a nada
+  if (session && attachment.uploadedById === session.userId) return true;
+
+  // print de feedback: só quem tria o feedback enxerga
+  if (session && attachment.feedbackId) {
+    if (await isFeedbackAdmin(session.email)) return true;
+  }
+
   if (session) {
     const dono = attachment.taskId
       ? await db.task.findFirst({

@@ -10,7 +10,9 @@ import {
   Hash,
   Inbox,
   Lock,
+  Megaphone,
   MessageSquare,
+  MessageSquareHeart,
   MoreHorizontal,
   PanelLeftClose,
   PieChart,
@@ -69,6 +71,8 @@ export function NavPanel({
   onNewTask,
   onNavigate,
   onCollapse,
+  onFeedback,
+  podeTriar,
 }: {
   user: UserDTO;
   projects: ProjectItem[];
@@ -76,6 +80,8 @@ export function NavPanel({
   onNewTask: (defaults?: { projectId?: string }) => void;
   onNavigate?: () => void;
   onCollapse?: () => void;
+  onFeedback: () => void;
+  podeTriar?: boolean;
 }) {
   const pathname = usePathname();
   const section = sectionForPath(pathname);
@@ -176,6 +182,28 @@ export function NavPanel({
           active={pathname.startsWith("/settings")}
           onNavigate={onNavigate}
         />
+        {podeTriar && (
+          <PanelLink
+            href="/feedback"
+            icon={<Megaphone className="size-4" />}
+            label="Feedback recebido"
+            active={pathname.startsWith("/feedback")}
+            onNavigate={onNavigate}
+          />
+        )}
+        {/* abre diálogo em vez de navegar: o recado é sobre a tela em que a
+            pessoa está, e sair dela para contar já perde metade do contexto */}
+        <button
+          type="button"
+          onClick={() => {
+            onNavigate?.();
+            onFeedback();
+          }}
+          className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+        >
+          <MessageSquareHeart className="size-4" />
+          <span className="truncate">Dar feedback</span>
+        </button>
 
         {/* projetos */}
         <SectionHeader label="Espaços" onAdd={onNewProject} />

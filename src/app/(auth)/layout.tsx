@@ -1,4 +1,4 @@
-import { BeniLogo } from "@/components/logo";
+import { BeniLogo, BeniMascote } from "@/components/logo";
 import { CheckCircle2 } from "lucide-react";
 
 const highlights = [
@@ -39,7 +39,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
             </p>
           </div>
 
-          <ul className="space-y-5">
+          <ul className="max-w-md space-y-5 xl:max-w-sm">
             {highlights.map((h) => (
               <li key={h.title} className="flex gap-3">
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-amber-950/80" />
@@ -50,6 +50,20 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
               </li>
             ))}
           </ul>
+        </div>
+
+        {/* o mascote encosta na borda de baixo em vez de flutuar no meio: assim
+            ele pertence à cena, e o clarão atrás resolve o amarelo dele sumindo
+            no amarelo do fundo */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-6 bottom-0 hidden h-[min(48vh,27rem)] xl:block"
+        >
+          <div className="absolute inset-[-18%] rounded-full bg-white/25 blur-3xl" />
+          <BeniMascote
+            pose="apresentando"
+            className="relative h-full w-auto drop-shadow-[0_18px_28px_rgba(120,53,15,0.28)]"
+          />
         </div>
       </div>
     </div>

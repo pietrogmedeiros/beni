@@ -21,9 +21,13 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const taskId = String(form.get("taskId") ?? "");
   const noteId = String(form.get("noteId") ?? "");
+  // print colado no formulário de feedback: sobe antes de existir o feedback,
+  // porque o formulário só é gravado quando a pessoa aperta enviar. Fica sem
+  // dono até lá, e `enviarFeedback` adota os que forem de quem está enviando.
+  const solto = form.get("solto") === "1";
   const file = form.get("file");
 
-  if ((!taskId && !noteId) || !(file instanceof File)) {
+  if ((!taskId && !noteId && !solto) || !(file instanceof File)) {
     return NextResponse.json({ error: "Envio incompleto" }, { status: 400 });
   }
 
@@ -43,7 +47,7 @@ export async function POST(request: Request) {
       })
     : null;
 
-  if (!task && !note) {
+  if (!task && !note && !solto) {
     return NextResponse.json({ error: "Destino não encontrado" }, { status: 404 });
   }
 
@@ -81,15 +85,19 @@ export async function POST(request: Request) {
       },
     });
 
-    await db.activity.create({
-      data: {
-        projectId: (task ?? note)!.projectId,
-        taskId: task?.id ?? null,
-        userId: user.id,
-        action: "attachment_added",
-        meta: { name: attachment.name, mimeType } as never,
-      },
-    });
+    // anexo solto não pertence a projeto nenhum ainda — não há linha do tempo
+    // onde registrar
+    if (task ?? note) {
+      await db.activity.create({
+        data: {
+          projectId: (task ?? note)!.projectId,
+          taskId: task?.id ?? null,
+          userId: user.id,
+          action: "attachment_added",
+          meta: { name: attachment.name, mimeType } as never,
+        },
+      });
+    }
 
     return NextResponse.json({ id: attachment.id });
   } catch (error) {

@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getWorkspaceContext } from "@/server/queries";
 import { AppShell } from "@/components/app-shell/app-shell";
+import { deveConvidar, podeTriarFeedback } from "@/server/feedback-shell";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const isDesktop = (await headers())
@@ -18,6 +19,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/api/session/clear");
   }
 
+  const [podeTriar, convite] = await Promise.all([
+    podeTriarFeedback(),
+    deveConvidar(ctx.projects.map((p) => p.id)),
+  ]);
+
   return (
     <AppShell
       user={ctx.user}
@@ -26,6 +32,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       members={ctx.members}
       tags={ctx.tags}
       desktop={isDesktop}
+      podeTriar={podeTriar}
+      convite={convite}
     >
       {children}
     </AppShell>

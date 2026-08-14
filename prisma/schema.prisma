@@ -64,6 +64,22 @@ enum ApprovalStatus {
   REJECTED
 }
 
+enum FeedbackKind {
+  PROBLEMA
+  IDEIA
+  ELOGIO
+  DUVIDA
+}
+
+enum FeedbackStatus {
+  NOVO
+  TRIADO
+  PLANEJADO
+  FAZENDO
+  FEITO
+  RECUSADO
+}
+
 enum DependencyType {
   FINISH_TO_START
   START_TO_START
@@ -95,6 +111,11 @@ model User {
   emailOnAssign    Boolean @default(true)
   emailOnApproval  Boolean @default(true)
   emailDailyDigest Boolean @default(true)
+
+  feedbacks Feedback[] @relation("FeedbackAuthor")
+  /// Quando o convite para dar feedback foi mostrado. Preenchido tanto ao
+  /// enviar quanto ao dispensar: o convite é único e não volta.
+  feedbackPromptedAt DateTime?
   apiTokens     ApiToken[]
   oauthCodes    OAuthCode[]
   shares        ProjectShare[] @relation("ShareCreator")
@@ -231,6 +252,7 @@ model Task {
   approvals   Approval[]
   attachments Attachment[]
   githubLinks TaskGithubLink[]
+  feedbacks   Feedback[]       @relation("FeedbackTask")
 
   @@unique([projectId, number])
   @@index([projectId, statusId])
@@ -543,9 +565,13 @@ model ApiToken {
 /// só o `storageKey` fica no banco.
 model Attachment {
   id           String   @id @default(cuid())
-  /// Anexo pertence a uma tarefa **ou** a uma anotação — nunca aos dois.
+  /// Anexo pertence a uma tarefa, a uma anotação **ou** a um feedback.
+  /// A única sobreposição é proposital: quando um feedback vira tarefa, o
+  /// print passa a valer para os dois — a triagem continua mostrando a prova
+  /// e a tarefa nasce com ela, sem duplicar os bytes.
   taskId       String?
   noteId       String?
+  feedbackId   String?
   name         String
   mimeType     String
   size         Int
@@ -556,12 +582,14 @@ model Attachment {
   uploadedById String?
   createdAt    DateTime @default(now())
 
-  task       Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  note       Note? @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  uploadedBy User? @relation("AttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  task       Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  note       Note?     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  feedback   Feedback? @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  uploadedBy User?     @relation("AttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([taskId])
   @@index([noteId])
+  @@index([feedbackId])
 }
 
 model Approval {
@@ -635,4 +663,48 @@ model Activity {
 
   @@index([projectId, createdAt])
   @@index([taskId])
+}
+
+/// Recado de quem usa o Beni para quem faz o Beni.
+///
+/// Fica fora de `Task` de propósito: cada usuário nasce num workspace só dele,
+/// então o recado atravessa a fronteira entre inquilinos. Nas tabelas de
+/// trabalho toda leitura é filtrada por workspace — conteúdo que vem de fora
+/// não deveria entrar lá antes de alguém olhar. Quando vira tarefa, é por ato
+/// explícito de quem tria, e aí nasce no workspace de quem promoveu.
+model Feedback {
+  id      String         @id @default(cuid())
+  kind    FeedbackKind
+  status  FeedbackStatus @default(NOVO)
+  message String
+
+  /// Contexto capturado sozinho — é o que separa "não funcionou" de algo que
+  /// dá para reproduzir.
+  pageUrl   String?
+  appBuild  String?
+  userAgent String?
+
+  /// Autor. O e-mail é copiado em vez de lido pela relação: a conta pode ser
+  /// apagada e ainda assim é preciso poder responder a quem escreveu.
+  userId      String?
+  email       String
+  name        String?
+  workspaceId String?
+
+  /// Triagem.
+  taskId      String?
+  adminNote   String?
+  /// Última resposta enviada ao autor, para não repetir o mesmo aviso.
+  respondedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation("FeedbackAuthor", fields: [userId], references: [id], onDelete: SetNull)
+  task Task? @relation("FeedbackTask", fields: [taskId], references: [id], onDelete: SetNull)
+
+  attachments Attachment[]
+
+  @@index([status, createdAt])
+  @@index([userId])
 }

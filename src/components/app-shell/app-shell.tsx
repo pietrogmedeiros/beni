@@ -23,6 +23,8 @@ import {
 import { TaskSheet } from "@/components/task/task-sheet";
 import { InviteDialog } from "@/components/app-shell/invite-dialog";
 import { BulkCreateDialog } from "@/components/task/bulk-create-dialog";
+import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
+import { FeedbackNudge } from "@/components/feedback/feedback-nudge";
 import { unreadTotals } from "@/server/actions/chat";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "@/lib/chat-stream";
@@ -37,6 +39,8 @@ export function AppShell({
   members,
   tags,
   desktop,
+  podeTriar,
+  convite,
   children,
 }: {
   user: UserDTO;
@@ -45,6 +49,10 @@ export function AppShell({
   members: WorkspaceMember[];
   tags: { id: string; name: string; color: string }[];
   desktop?: boolean;
+  /** Quem tria o feedback enxerga a caixa de entrada. */
+  podeTriar?: boolean;
+  /** Mostrar o convite único de feedback nesta sessão. */
+  convite?: boolean;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -59,6 +67,7 @@ export function AppShell({
   const [unread, setUnread] = useState({ unread: 0, mentions: 0 });
   const [inviteOpen, setInviteOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -215,6 +224,8 @@ export function AppShell({
                   onNewTask={openNewTask}
                   onNavigate={() => setMobileOpen(false)}
                   onCollapse={togglePanel}
+                  onFeedback={() => setFeedbackOpen(true)}
+                  podeTriar={podeTriar}
                 />
               )}
             </div>
@@ -261,6 +272,11 @@ export function AppShell({
           projects={projects}
           defaultProjectId={projectIdFromPath ?? undefined}
         />
+
+        <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+        {convite && !feedbackOpen && (
+          <FeedbackNudge onAbrir={() => setFeedbackOpen(true)} />
+        )}
 
         <TaskSheet taskId={openTaskId} onClose={() => setOpenTaskId(null)} />
       </AppProvider>

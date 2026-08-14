@@ -1,6 +1,8 @@
 import "server-only";
+import { db } from "@/lib/db";
 import { enviarResumoDiario } from "@/server/notify";
 import { emailEnabled } from "@/server/email";
+import { removeUpload } from "@/lib/uploads";
 
 /**
  * Agendamento do resumo diário, dentro do próprio processo.
@@ -28,9 +30,45 @@ function horaLocal() {
   );
 }
 
+/**
+ * Recolhe print que foi colado no formulário de feedback e nunca enviado.
+ *
+ * O arquivo sobe antes de o feedback existir, então quem desiste no meio deixa
+ * um anexo sem dono. Um dia de carência é folga suficiente para qualquer
+ * formulário aberto, e sem isto os bytes ficam no banco para sempre.
+ */
+async function limparAnexosSoltos() {
+  const ontem = new Date(Date.now() - 24 * 60 * 60_000);
+  const orfaos = await db.attachment.findMany({
+    where: {
+      taskId: null,
+      noteId: null,
+      feedbackId: null,
+      createdAt: { lt: ontem },
+    },
+    select: { id: true, storageKey: true },
+    take: 500,
+  });
+  if (orfaos.length === 0) return;
+
+  await db.attachment.deleteMany({ where: { id: { in: orfaos.map((o) => o.id) } } });
+  for (const orfao of orfaos) await removeUpload(orfao.storageKey);
+  console.log(`[limpeza] ${orfaos.length} anexo(s) sem dono removido(s)`);
+}
+
 export function iniciarAgendador() {
-  if (iniciado || !emailEnabled()) return;
+  if (iniciado) return;
   iniciado = true;
+
+  // a limpeza não depende de e-mail configurado
+  const limpar = () =>
+    limparAnexosSoltos().catch((e) =>
+      console.error("[limpeza] falhou:", (e as Error).message),
+    );
+  setTimeout(limpar, 90_000);
+  setInterval(limpar, 6 * 60 * 60_000).unref?.();
+
+  if (!emailEnabled()) return;
 
   const verificar = () => {
     if (horaLocal() !== HORA) return;

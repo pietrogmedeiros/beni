@@ -25,3 +25,7 @@ e2e
 .windsurf
 
 uploads
+
+# Originais do mascote: ficam no repositório como fonte, mas o que a aplicação
+# serve são os recortes já prontos em public/.
+pack-logos
