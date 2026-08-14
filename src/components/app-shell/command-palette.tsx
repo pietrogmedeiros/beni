@@ -100,7 +100,10 @@ export function CommandPalette({
         value={term}
         onValueChange={setTerm}
       />
-      <CommandList className="max-h-[420px]">
+      {/* o teto em pixels é o desejado; o outro termo entra quando a janela é
+          baixa demais para ele — 11rem cobre o recuo do topo, o campo de busca
+          e uma folga no rodapé */}
+      <CommandList className="max-h-[min(420px,calc(100dvh-11rem))]">
         <CommandEmpty>Nada encontrado.</CommandEmpty>
 
         {results.length > 0 && (
