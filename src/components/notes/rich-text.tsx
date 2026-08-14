@@ -8,7 +8,33 @@ import { Fragment } from "react";
  * por link aberto não tem como carregar script junto, por mais criativo que
  * seja quem escreveu.
  */
-const PADRAO = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g;
+/**
+ * Domínios que reconhecemos sem `http://` na frente.
+ *
+ * A lista existe para não transformar `config.json` ou `main.js` em link —
+ * numa anotação técnica isso aconteceria o tempo todo. Endereço com esquema
+ * (`https://`) ou com `www.` é reconhecido sem depender desta lista.
+ */
+const TLDS =
+  "com|br|net|org|io|dev|app|co|me|ai|space|info|tech|site|online|xyz|gov|edu|blog|cloud|store";
+
+const URL_SOLTA =
+  `https?:\\/\\/[^\\s<>()\\[\\]]+` +
+  `|www\\.[^\\s<>()\\[\\]]+` +
+  `|(?:[a-zA-Z0-9-]+\\.)+(?:${TLDS})(?:\\.[a-z]{2})?(?:\\/[^\\s<>()\\[\\]]*)?` +
+  `|\\d{1,3}(?:\\.\\d{1,3}){3}(?:\\/[^\\s<>()\\[\\]]*)?`;
+
+const PADRAO = new RegExp(
+  `(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|\`[^\`]+\`|\\[[^\\]]+\\]\\([^)\\s]+\\)|${URL_SOLTA})`,
+  "g",
+);
+
+/** Pontuação final não faz parte do endereço: "veja beni.space." */
+function separarPontuacao(texto: string): [string, string] {
+  const m = texto.match(/[.,;:!?)\]]+$/);
+  if (!m) return [texto, ""];
+  return [texto.slice(0, -m[0].length), m[0]];
+}
 
 /** Só http(s) e caminhos internos viram link clicável. */
 function linkSeguro(href: string) {
@@ -39,6 +65,34 @@ export function RichText({ text }: { text: string }) {
             <code key={key} className="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">
               {pedaco.slice(1, -1)}
             </code>
+          );
+        }
+
+        // endereço escrito solto no texto vira link clicável
+        const ehEndereco =
+          /^(https?:\/\/|www\.)/i.test(pedaco) ||
+          /^[\w.-]+\.[a-z]{2,}/i.test(pedaco) ||
+          /^\d{1,3}(\.\d{1,3}){3}([/:]|$)/.test(pedaco);
+
+        if (ehEndereco) {
+          const [endereco, pontuacao] = separarPontuacao(pedaco);
+          // endereço de máquina interna costuma não ter TLS; o resto assume https
+          const ehIp = /^\d{1,3}(\.\d{1,3}){3}/.test(endereco);
+          const href = /^https?:\/\//i.test(endereco)
+            ? endereco
+            : `${ehIp ? "http" : "https"}://${endereco}`;
+          return (
+            <Fragment key={key}>
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-primary-strong underline underline-offset-2"
+              >
+                {endereco}
+              </a>
+              {pontuacao}
+            </Fragment>
           );
         }
 

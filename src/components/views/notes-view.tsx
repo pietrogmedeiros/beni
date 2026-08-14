@@ -66,20 +66,24 @@ export function NotesView({
     setDica(localStorage.getItem(DICA_KEY) !== "0");
   }, []);
 
+  // busca no servidor ao trocar de anotação; as mudanças de estado acontecem
+  // no callback, não no corpo do efeito
   useEffect(() => {
-    if (!abertaId) {
-      setAberta(null);
-      return;
-    }
     let vivo = true;
-    // busca no servidor ao trocar de anotação — sincronização externa
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCarregando(true);
-    getNote(abertaId)
-      .then((n) => vivo && setAberta(n))
-      .finally(() => vivo && setCarregando(false));
+    const id = requestAnimationFrame(() => {
+      if (!vivo) return;
+      if (!abertaId) {
+        setAberta(null);
+        return;
+      }
+      setCarregando(true);
+      getNote(abertaId)
+        .then((n) => vivo && setAberta(n))
+        .finally(() => vivo && setCarregando(false));
+    });
     return () => {
       vivo = false;
+      cancelAnimationFrame(id);
     };
   }, [abertaId]);
 
@@ -107,13 +111,47 @@ export function NotesView({
     [abertaId, projectId],
   );
 
-  // trocar de anotação não pode levar junto o que ficou pendente da anterior
-  useEffect(() => {
+  /**
+   * Grava agora o que está esperando o timer.
+   *
+   * Trocar de anotação recarregava do servidor antes do salvamento adiado
+   * acontecer — e o último trecho digitado sumia da tela como se nunca tivesse
+   * sido escrito. Qualquer saída do documento passa por aqui primeiro.
+   */
+  const descarregar = useCallback(async () => {
+    if (timer.current) clearTimeout(timer.current);
+    const enviar = pendente.current;
     pendente.current = {};
+    if (!abertaId || Object.keys(enviar).length === 0) return;
+    await saveNote(abertaId, enviar);
+    setSalvando(false);
   }, [abertaId]);
+
+  function abrir(id: string) {
+    void descarregar().then(() => setAbertaId(id));
+  }
+
+  /**
+   * Avisa antes de fechar a aba com texto ainda não gravado.
+   *
+   * Não dá para garantir uma escrita no servidor durante o fechamento — o
+   * navegador corta a requisição. Então o honesto é avisar, em vez de fingir
+   * que salvou.
+   */
+  useEffect(() => {
+    const aoSair = (e: BeforeUnloadEvent) => {
+      if (Object.keys(pendente.current).length > 0) e.preventDefault();
+    };
+    window.addEventListener("beforeunload", aoSair);
+    return () => window.removeEventListener("beforeunload", aoSair);
+  }, []);
+
+  // sair da tela de anotações também grava o que estava pendente
+  useEffect(() => () => void descarregar(), [descarregar]);
 
   function nova() {
     startTransition(async () => {
+      await descarregar();
       const { id } = await createNote(projectId);
       setNotes(await listNotes(projectId));
       setAbertaId(id);
@@ -153,7 +191,7 @@ export function NotesView({
               <button
                 key={n.id}
                 type="button"
-                onClick={() => setAbertaId(n.id)}
+                onClick={() => abrir(n.id)}
                 className={cn(
                   "block w-full border-b px-3 py-2.5 text-left transition hover:bg-muted/60",
                   abertaId === n.id && "bg-muted",

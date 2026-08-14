@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CheckSquare, GripVertical, Loader2, Plus, Square, Trash2, X } from "lucide-react";
 import { newBlock, SHORTCUTS, type Block, type BlockType } from "@/lib/notes";
@@ -53,8 +53,11 @@ export function NoteEditor({
     initialBlocks.length ? initialBlocks : [newBlock()],
   );
   const [enviando, setEnviando] = useState(false);
+  const [focado, setFocado] = useState<string | null>(null);
   const refs = useRef(new Map<string, HTMLTextAreaElement>());
   const focarDepois = useRef<string | null>(null);
+  /** Onde deixar o cursor quando o campo aparecer. */
+  const cursorAlvo = useRef<number | null>(null);
 
   const atualizar = useCallback(
     (proximos: Block[]) => {
@@ -64,13 +67,57 @@ export function NoteEditor({
     [onChange],
   );
 
-  // o cursor vai para o bloco recém-criado, não para onde estava
+  // bloco recém-criado entra em edição (para o botão "adicionar", que não
+  // passa pelo teclado)
   useEffect(() => {
     if (!focarDepois.current) return;
-    const el = refs.current.get(focarDepois.current);
+    const id = focarDepois.current;
     focarDepois.current = null;
-    el?.focus();
+    setFocado(id);
   }, [blocks]);
+
+  /**
+   * Põe o cursor no campo assim que ele aparece.
+   *
+   * Um bloco fora de foco é texto exibido, e o campo só existe depois que o
+   * React monta a troca. Tentar focar antes disso — no mesmo quadro do clique —
+   * não funcionava: o elemento ainda não existia, e o que era digitado se
+   * perdia no documento.
+   */
+  useLayoutEffect(() => {
+    if (!focado) return;
+    const el = refs.current.get(focado);
+    if (!el) return;
+    el.focus();
+    const pos = cursorAlvo.current ?? el.value.length;
+    cursorAlvo.current = null;
+    el.setSelectionRange(pos, pos);
+  }, [focado]);
+
+  /**
+   * Entra em edição no ponto clicado.
+   *
+   * Um bloco fora de foco é texto exibido — é o que permite ver link,
+   * negrito e código de verdade. Ao clicar, ele vira campo; sem esta conta o
+   * cursor cairia sempre no fim, e corrigir uma palavra no meio viraria uma
+   * caçada.
+   */
+  function editarNoPonto(bloco: Block, e: React.MouseEvent<HTMLDivElement>) {
+    const alvo = e.target as HTMLElement;
+    if (alvo.closest("a")) return; // clicar num link abre o link
+
+    let posicao = bloco.text.length;
+    const range = document.caretRangeFromPoint?.(e.clientX, e.clientY);
+    if (range) {
+      const medida = range.cloneRange();
+      medida.selectNodeContents(e.currentTarget);
+      medida.setEnd(range.startContainer, range.startOffset);
+      posicao = Math.min(medida.toString().length, bloco.text.length);
+    }
+
+    cursorAlvo.current = posicao;
+    setFocado(bloco.id);
+  }
 
   function alterarTexto(id: string, text: string) {
     const bloco = blocks.find((b) => b.id === id);
@@ -107,7 +154,11 @@ export function NoteEditor({
       // listas continuam no mesmo tipo; o resto volta a parágrafo
       const herda = ["bullet", "number", "todo"].includes(bloco.type);
       const novo = newBlock(herda ? bloco.type : "p");
-      focarDepois.current = novo.id;
+      // o foco muda no mesmo passo da criação: adiar isso deixava o campo
+      // anterior recebendo as teclas seguintes, e a letra da próxima linha
+      // grudava no fim da anterior
+      cursorAlvo.current = 0;
+      setFocado(novo.id);
       atualizar([...blocks.slice(0, index + 1), novo, ...blocks.slice(index + 1)]);
       return;
     }
@@ -121,7 +172,8 @@ export function NoteEditor({
       if (index > 0) {
         e.preventDefault();
         const anterior = blocks[index - 1];
-        focarDepois.current = anterior.id;
+        cursorAlvo.current = anterior.text.length;
+        setFocado(anterior.id);
         atualizar([
           ...blocks.slice(0, index - 1),
           { ...anterior, text: anterior.text + bloco.text },
@@ -285,6 +337,34 @@ export function NoteEditor({
                 className="mt-1 w-full bg-transparent text-xs text-muted-foreground outline-none"
               />
             </figure>
+          ) : focado !== bloco.id ? (
+            <div
+              role="textbox"
+              tabIndex={0}
+              onClick={(e) => editarNoPonto(bloco, e)}
+              onFocus={() => setFocado(bloco.id)}
+              className={cn(
+                "flex-1 cursor-text leading-relaxed whitespace-pre-wrap outline-none",
+                bloco.type === "h1" && "pt-3 text-2xl font-semibold tracking-tight",
+                bloco.type === "h2" && "pt-2 text-xl font-semibold tracking-tight",
+                bloco.type === "h3" && "pt-1 text-base font-semibold",
+                bloco.type === "quote" &&
+                  "border-l-2 border-primary/50 pl-3 text-foreground/90 italic",
+                bloco.type === "code" && "rounded-lg bg-muted px-3 py-2 font-mono text-xs",
+                bloco.type === "todo" && bloco.checked && "text-muted-foreground line-through",
+                !bloco.text && "text-muted-foreground/60",
+              )}
+            >
+              {bloco.text ? (
+                bloco.type === "code" ? (
+                  bloco.text
+                ) : (
+                  <RichText text={bloco.text} />
+                )
+              ) : (
+                (PLACEHOLDER[bloco.type] ?? "")
+              )}
+            </div>
           ) : (
             <textarea
               ref={(el) => {
@@ -295,6 +375,7 @@ export function NoteEditor({
               onChange={(e) => alterarTexto(bloco.id, e.target.value)}
               onKeyDown={(e) => aoTeclar(e, index)}
               onPaste={(e) => void aoColar(e, index)}
+              onBlur={() => setFocado((atual) => (atual === bloco.id ? null : atual))}
               placeholder={PLACEHOLDER[bloco.type]}
               rows={1}
               className={cn(

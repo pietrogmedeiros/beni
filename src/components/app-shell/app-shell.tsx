@@ -116,11 +116,15 @@ export function AppShell({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
+      // "está escrevendo" inclui o editor de anotações, cujos blocos fora de
+      // foco são divs com papel de campo de texto: sem isto, teclar "n" ali
+      // abria o diálogo de nova tarefa no meio do documento
       const typing =
         target &&
         (target.tagName === "INPUT" ||
           target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
+          target.isContentEditable ||
+          !!target.closest('[role="textbox"]'));
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
