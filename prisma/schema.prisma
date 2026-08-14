@@ -87,6 +87,7 @@ model User {
   activities    Activity[]
   approvals     Approval[]     @relation("ApprovalRequester")
   attachments   Attachment[]   @relation("AttachmentUploader")
+  notes         Note[]
   apiTokens     ApiToken[]
   oauthCodes    OAuthCode[]
   shares        ProjectShare[] @relation("ShareCreator")
@@ -145,6 +146,7 @@ model Project {
   statuses     TaskStatus[]
   sprints      Sprint[]
   tasks        Task[]
+  notes        Note[]
   activities   Activity[]
   repositories GithubRepo[]
   shares       ProjectShare[]
@@ -390,6 +392,45 @@ model TaskGithubLink {
 
 /// Pedido de aprovação enviado a um stakeholder por link público.
 /// O aprovador não precisa de conta: identifica-se pelo nome ao decidir.
+/// Documento de anotações do projeto.
+///
+/// O conteúdo é uma lista de **blocos** em JSON, não HTML. A anotação pode ser
+/// publicada por link aberto, e renderizar HTML escrito por usuário numa página
+/// pública é convite para injeção de script. Com blocos, o que sai na tela é
+/// desenhado pelo nosso próprio código — não há como um documento carregar
+/// comportamento junto.
+model Note {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String   @default("Sem título")
+  icon        String?
+  /// Blocos do documento: [{ id, type, text, … }]
+  blocks      Json     @default("[]")
+  archived    Boolean  @default(false)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  attachments Attachment[]
+  share       NoteShare?
+
+  @@index([projectId])
+}
+
+/// Link público de uma anotação. Quem tem o link lê; ninguém edita por ali.
+model NoteShare {
+  id          String    @id @default(cuid())
+  noteId      String    @unique
+  token       String    @unique
+  createdById String?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+}
+
 /// Cliente OAuth registrado dinamicamente.
 ///
 /// O conector do Claude na web não aceita chave fixa: ele descobre o servidor
@@ -455,7 +496,9 @@ model ApiToken {
 /// só o `storageKey` fica no banco.
 model Attachment {
   id           String   @id @default(cuid())
-  taskId       String
+  /// Anexo pertence a uma tarefa **ou** a uma anotação — nunca aos dois.
+  taskId       String?
+  noteId       String?
   name         String
   mimeType     String
   size         Int
@@ -466,10 +509,12 @@ model Attachment {
   uploadedById String?
   createdAt    DateTime @default(now())
 
-  task       Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task       Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  note       Note? @relation(fields: [noteId], references: [id], onDelete: Cascade)
   uploadedBy User? @relation("AttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([taskId])
+  @@index([noteId])
 }
 
 model Approval {

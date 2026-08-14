@@ -59,17 +59,18 @@ export async function deleteAttachment(id: string) {
   await db.attachment.delete({ where: { id } });
   await removeUpload(attachment.storageKey);
 
-  await db.activity.create({
-    data: {
-      projectId: attachment.task.projectId,
-      taskId: attachment.task.id,
-      userId: user.id,
-      action: "attachment_removed",
-      meta: { name: attachment.name } as never,
-    },
-  });
-
-  revalidatePath(`/t/${attachment.task.id}`);
+  if (attachment.task) {
+    await db.activity.create({
+      data: {
+        projectId: attachment.task.projectId,
+        taskId: attachment.task.id,
+        userId: user.id,
+        action: "attachment_removed",
+        meta: { name: attachment.name } as never,
+      },
+    });
+    revalidatePath(`/t/${attachment.task.id}`);
+  }
 }
 
 /** Anexos vistos por quem chega pelo link público — sem sessão. */

@@ -10,6 +10,7 @@ const AUTH_PATHS = ["/login", "/register"];
 const OPEN_PATHS = [
   "/aprovar",
   "/compartilhar",
+  "/nota",
   // descoberta e troca de token do OAuth: o cliente que chama aqui não tem
   // sessão nenhuma — é justamente o que ele vem buscar
   "/.well-known",

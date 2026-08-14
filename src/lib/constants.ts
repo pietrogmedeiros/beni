@@ -166,4 +166,5 @@ export const PROJECT_VIEWS = [
   { slug: "backlog", label: "Backlog", icon: "Layers" },
   { slug: "calendar", label: "Calendário", icon: "CalendarDays" },
   { slug: "dashboard", label: "Painel", icon: "PieChart" },
+  { slug: "notas", label: "Anotações", icon: "NotebookPen" },
 ] as const;

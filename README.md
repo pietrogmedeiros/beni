@@ -105,6 +105,23 @@ privados (ou para elevar o limite de requisições), salve um *personal access
 token* com escopo `repo` em **Configurações → GitHub** — ele é guardado
 **cifrado (AES-256-GCM)** e nunca volta para o navegador.
 
+### Anotações do projeto
+
+Cada projeto tem uma aba **Anotações**: documentos internos no espírito do
+Notion, sem a máquina do Notion. Escreve-se em blocos, com os atalhos de sempre
+— `#` para título, `-` para lista, `[]` para caixa, `>` para citação, ``` ` ` ` ```
+para código, `---` para linha — e **prints colados direto no texto** viram
+imagem. Dentro da linha valem `**negrito**`, `*itálico*`, `` `código` `` e
+`[links](url)`. Salva sozinho enquanto se escreve.
+
+Cada anotação pode virar um **link público** (`/nota/<token>`), em modo leitura:
+quem recebe lê sem conta e sem editar. As imagens continuam protegidas — o
+token do link vale para os anexos daquela anotação, e só deles.
+
+> O conteúdo é guardado como **blocos em JSON, não HTML**. Como o documento
+> pode ser publicado, renderizar HTML escrito por usuário seria porta aberta
+> para injeção de script; com blocos, quem desenha a tela é o nosso código.
+
 ### Chat do time (estilo Slack)
 
 Em **Chat** o time conversa sem sair do Beni:

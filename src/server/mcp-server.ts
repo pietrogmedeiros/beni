@@ -54,9 +54,23 @@ async function responder(fn: () => Promise<string>) {
   }
 }
 
-export function buildMcpServer(caller: ApiCaller) {
+export function buildMcpServer(caller: ApiCaller, origin?: string) {
+  const base = origin ?? "https://app.benicio.space";
+
   const server = new McpServer(
-    { name: "beni", version: "1.0.0" },
+    {
+      name: "beni",
+      // title, ícone e endereço vêm no `initialize`: é assim que o cliente
+      // mostra a marca em vez de uma letra genérica tirada do nome
+      title: "Beni",
+      version: "1.0.0",
+      description: "Projetos, tarefas e backlog do time.",
+      websiteUrl: base,
+      icons: [
+        { src: `${base}/beni.png`, mimeType: "image/png", sizes: ["500x500"] },
+        { src: `${base}/icon.png`, mimeType: "image/png", sizes: ["256x256"] },
+      ],
+    },
     {
       instructions:
         "Beni é o gerenciador de projetos, tarefas e backlog do usuário. Use beni_projetos para " +

@@ -20,18 +20,31 @@ export async function POST(request: Request) {
 
   const form = await request.formData();
   const taskId = String(form.get("taskId") ?? "");
+  const noteId = String(form.get("noteId") ?? "");
   const file = form.get("file");
 
-  if (!taskId || !(file instanceof File)) {
+  if ((!taskId && !noteId) || !(file instanceof File)) {
     return NextResponse.json({ error: "Envio incompleto" }, { status: 400 });
   }
 
-  const task = await db.task.findFirst({
-    where: { id: taskId, project: { workspaceId: workspace.id } },
-    select: { id: true, projectId: true },
-  });
-  if (!task) {
-    return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
+  // o anexo pertence a uma tarefa ou a uma anotação; os dois caminhos exigem
+  // que o dono esteja no workspace de quem envia
+  const task = taskId
+    ? await db.task.findFirst({
+        where: { id: taskId, project: { workspaceId: workspace.id } },
+        select: { id: true, projectId: true },
+      })
+    : null;
+
+  const note = noteId
+    ? await db.note.findFirst({
+        where: { id: noteId, project: { workspaceId: workspace.id } },
+        select: { id: true, projectId: true },
+      })
+    : null;
+
+  if (!task && !note) {
+    return NextResponse.json({ error: "Destino não encontrado" }, { status: 404 });
   }
 
   if (file.size > MAX_UPLOAD_BYTES) {
@@ -56,7 +69,8 @@ export async function POST(request: Request) {
   try {
     const attachment = await db.attachment.create({
       data: {
-        taskId,
+        taskId: task?.id ?? null,
+        noteId: note?.id ?? null,
         name: file.name.slice(0, 200),
         mimeType,
         size,
@@ -69,8 +83,8 @@ export async function POST(request: Request) {
 
     await db.activity.create({
       data: {
-        projectId: task.projectId,
-        taskId,
+        projectId: (task ?? note)!.projectId,
+        taskId: task?.id ?? null,
         userId: user.id,
         action: "attachment_added",
         meta: { name: attachment.name, mimeType } as never,

@@ -18,29 +18,50 @@ export const dynamic = "force-dynamic";
  * O token é conferido contra a tarefa do anexo, então um link de aprovação não
  * serve para pescar anexos de outras tarefas.
  */
-async function canRead(attachment: { id: string; taskId: string }, token: string | null) {
+async function canRead(
+  attachment: { id: string; taskId: string | null; noteId: string | null },
+  token: string | null,
+) {
   const session = await getSession();
   if (session) {
-    const allowed = await db.task.findFirst({
-      where: {
-        id: attachment.taskId,
-        project: { workspace: { members: { some: { userId: session.userId } } } },
-      },
-      select: { id: true },
-    });
-    if (allowed) return true;
+    const dono = attachment.taskId
+      ? await db.task.findFirst({
+          where: {
+            id: attachment.taskId,
+            project: { workspace: { members: { some: { userId: session.userId } } } },
+          },
+          select: { id: true },
+        })
+      : await db.note.findFirst({
+          where: {
+            id: attachment.noteId ?? "",
+            project: { workspace: { members: { some: { userId: session.userId } } } },
+          },
+          select: { id: true },
+        });
+    if (dono) return true;
   }
 
   if (!token) return false;
 
+  // imagem dentro de anotação publicada: o token do link vale para os anexos
+  // daquela anotação, e só deles
+  if (attachment.noteId) {
+    const share = await db.noteShare.findFirst({
+      where: { token, noteId: attachment.noteId },
+      select: { id: true },
+    });
+    return !!share;
+  }
+
   const approval = await db.approval.findFirst({
-    where: { token, taskId: attachment.taskId },
+    where: { token, taskId: attachment.taskId ?? "" },
     select: { id: true },
   });
   if (approval) return true;
 
   const share = await db.projectShare.findFirst({
-    where: { token, project: { tasks: { some: { id: attachment.taskId } } } },
+    where: { token, project: { tasks: { some: { id: attachment.taskId ?? "" } } } },
     select: { id: true },
   });
   return !!share;

@@ -72,9 +72,10 @@ export async function POST(request: Request) {
 
   const mensagens = Array.isArray(body) ? body : [body];
   const respostas: JSONRPCMessage[] = [];
+  const base = await issuer();
 
   for (const mensagem of mensagens) {
-    const server = buildMcpServer(caller);
+    const server = buildMcpServer(caller, base);
     respostas.push(...(await runMcpRequest(server, mensagem)));
   }
 
