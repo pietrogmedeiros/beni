@@ -67,7 +67,13 @@ export function resolveStoragePath(storageKey: string) {
   // defesa em profundidade: mesmo vindo do banco, o nome é normalizado e
   // precisa continuar dentro do diretório de uploads
   const safe = path.basename(storageKey);
-  return path.join(UPLOAD_DIR, safe);
+
+  // `turbopackIgnore` porque o caminho vem de configuração, não do código.
+  // Sem isto o empacotador conclui que qualquer arquivo do projeto pode ser
+  // lido em runtime e arrasta o projeto inteiro para dentro do build de
+  // servidor — imagem maior e implantação mais lenta, num build que já leva
+  // dez minutos. Este diretório é um volume: nada dele existe no repositório.
+  return path.join(/*turbopackIgnore: true*/ UPLOAD_DIR, safe);
 }
 
 export type StoredUpload = {
@@ -85,16 +91,16 @@ export async function saveUpload(file: File): Promise<StoredUpload> {
     return { storageKey: null, data: buffer, size: buffer.byteLength, checksum };
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  await mkdir(/*turbopackIgnore: true*/ UPLOAD_DIR, { recursive: true });
   const storageKey = storageKeyFor(file.name);
-  await writeFile(resolveStoragePath(storageKey), buffer);
+  await writeFile(/*turbopackIgnore: true*/ resolveStoragePath(storageKey), buffer);
   return { storageKey, data: null, size: buffer.byteLength, checksum };
 }
 
 export async function removeUpload(storageKey: string | null) {
   if (!storageKey || !UPLOAD_DIR) return;
   try {
-    await unlink(resolveStoragePath(storageKey));
+    await unlink(/*turbopackIgnore: true*/ resolveStoragePath(storageKey));
   } catch {
     // arquivo já sumiu (volume recriado, remoção manual): o registro no banco
     // é apagado do mesmo jeito
@@ -103,7 +109,7 @@ export async function removeUpload(storageKey: string | null) {
 
 export async function uploadSize(storageKey: string) {
   try {
-    return (await stat(resolveStoragePath(storageKey))).size;
+    return (await stat(/*turbopackIgnore: true*/ resolveStoragePath(storageKey))).size;
   } catch {
     return null;
   }

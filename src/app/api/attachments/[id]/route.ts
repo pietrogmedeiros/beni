@@ -115,7 +115,10 @@ export async function GET(
 
     if (attachment.storageKey) {
       const stream = Readable.toWeb(
-        createReadStream(resolveStoragePath(attachment.storageKey), { start, end }),
+        createReadStream(/*turbopackIgnore: true*/ resolveStoragePath(attachment.storageKey), {
+          start,
+          end,
+        }),
       ) as ReadableStream;
       return new NextResponse(stream, { status: 206, headers });
     }
@@ -140,7 +143,7 @@ export async function GET(
 
   if (attachment.storageKey) {
     const stream = Readable.toWeb(
-      createReadStream(resolveStoragePath(attachment.storageKey)),
+      createReadStream(/*turbopackIgnore: true*/ resolveStoragePath(attachment.storageKey)),
     ) as ReadableStream;
     return new NextResponse(stream, { headers });
   }
