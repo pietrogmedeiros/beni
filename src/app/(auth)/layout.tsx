@@ -24,7 +24,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         <div className="mx-auto w-full max-w-sm">
           <BeniLogo className="mb-10" />
           {children}
-          <div className="mt-10 border-t pt-4">
+          <div className="mt-8">
             <DesktopDownloadLink />
           </div>
         </div>

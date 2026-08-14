@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Apple } from "lucide-react";
+import { Download } from "lucide-react";
+import { BeniMascote } from "@/components/logo";
 import { DOWNLOAD_MAC } from "@/lib/constants";
 
 /**
- * Link discreto para o app de Mac, na entrada.
+ * Convite para o app de Mac, na entrada.
  *
- * Aqui a pessoa ainda não tem conta, então isto é convite, não ferramenta —
- * daí ser uma linha de texto e não um cartão com botão como na página inicial.
+ * Tem peso de botão e não de link solto: é a única oferta da tela além de
+ * entrar, e uma linha de texto miúda ao pé da página passava despercebida.
  *
- * Mesma regra de sempre: só aparece em Mac, no navegador, fora do próprio app.
- * Como a decisão depende do navegador, nasce oculto — renderizar no servidor
- * mostraria a linha por um quadro para quem ela não serve.
+ * Só aparece em Mac, no navegador, fora do próprio app. Como a decisão depende
+ * do navegador, nasce oculto — renderizar no servidor mostraria o convite por
+ * um quadro para quem ele não serve.
  */
 export function DesktopDownloadLink() {
   const [mostrar, setMostrar] = useState(false);
@@ -32,10 +33,24 @@ export function DesktopDownloadLink() {
   return (
     <a
       href={DOWNLOAD_MAC}
-      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+      className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/50 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      <Apple className="size-3.5" />
-      Baixar o app para Mac
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition group-hover:bg-primary/15">
+        <BeniMascote pose="andando" pequeno className="h-9 w-auto" />
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-foreground">
+          Baixar o app para Mac
+        </span>
+        <span className="block text-[11px] leading-tight text-muted-foreground">
+          Janela própria · Intel e Apple Silicon
+        </span>
+      </span>
+
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border text-muted-foreground transition group-hover:border-primary/40 group-hover:bg-primary group-hover:text-primary-foreground">
+        <Download className="size-4" />
+      </span>
     </a>
   );
 }
