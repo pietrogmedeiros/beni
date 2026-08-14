@@ -24,7 +24,8 @@ export function DesktopDownload() {
   useEffect(() => {
     const ua = navigator.userAgent;
     const noApp = ua.includes("BeniDesktop");
-    const ehMac = /Mac/i.test(navigator.platform || ua);
+    // o agente, e não `navigator.platform`, que está obsoleto
+    const ehMac = /Mac(intosh)?/i.test(ua);
     const dispensado = localStorage.getItem(DISPENSADO) === "1";
     // sincronização com fonte externa (navegador, localStorage) — intencional
     // eslint-disable-next-line react-hooks/set-state-in-effect

@@ -1,4 +1,5 @@
 import { BeniLogo, BeniMascote } from "@/components/logo";
+import { DesktopDownloadLink } from "@/components/desktop-download-link";
 import { CheckCircle2 } from "lucide-react";
 
 const highlights = [
@@ -23,6 +24,9 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
         <div className="mx-auto w-full max-w-sm">
           <BeniLogo className="mb-10" />
           {children}
+          <div className="mt-10 border-t pt-4">
+            <DesktopDownloadLink />
+          </div>
         </div>
       </div>
 
