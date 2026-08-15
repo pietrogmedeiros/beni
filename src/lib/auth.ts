@@ -18,6 +18,15 @@ export type SessionPayload = {
   userId: string;
   email: string;
   name: string;
+  /**
+   * Geração da sessão. Redefinir a senha incrementa a do usuário, e todo
+   * cookie emitido antes disso para de valer — é o que faz a troca de senha
+   * realmente expulsar quem estava dentro.
+   *
+   * Opcional porque cookies emitidos antes desta mudança não têm o campo;
+   * eles valem até vencer, e a primeira redefinição os invalida.
+   */
+  epoch?: number;
 };
 
 export async function hashPassword(plain: string) {
@@ -81,6 +90,11 @@ export const requireUser = cache(async () => {
   });
 
   if (!user) throw new Error("UNAUTHENTICATED");
+  // cookie de antes da última troca de senha não vale mais. A consulta já
+  // acontecia aqui, então conferir não custa ida extra ao banco.
+  if (session.epoch !== undefined && session.epoch !== user.sessionEpoch) {
+    throw new Error("UNAUTHENTICATED");
+  }
   return user;
 });
 

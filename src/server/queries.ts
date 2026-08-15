@@ -11,6 +11,8 @@ export type UserDTO = {
   name: string;
   email: string;
   avatarColor: string;
+  /** Nulo enquanto o dono do endereço não clicar no link de confirmação. */
+  emailVerifiedAt?: string | null;
 };
 
 export type TagDTO = { id: string; name: string; color: string };
@@ -158,6 +160,7 @@ export const getWorkspaceContext = cache(async () => {
       name: user.name,
       email: user.email,
       avatarColor: user.avatarColor,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
     } satisfies UserDTO,
     workspace: { id: workspace.id, name: workspace.name, slug: workspace.slug },
     projects: projects.map((p) => ({

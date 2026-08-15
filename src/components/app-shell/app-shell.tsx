@@ -25,6 +25,7 @@ import { InviteDialog } from "@/components/app-shell/invite-dialog";
 import { BulkCreateDialog } from "@/components/task/bulk-create-dialog";
 import { FeedbackDialog } from "@/components/feedback/feedback-dialog";
 import { FeedbackNudge } from "@/components/feedback/feedback-nudge";
+import { ConfirmarEmailAviso } from "@/components/confirmar-email-aviso";
 import { unreadTotals } from "@/server/actions/chat";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "@/lib/chat-stream";
@@ -41,6 +42,7 @@ export function AppShell({
   desktop,
   podeTriar,
   convite,
+  emailPendente,
   children,
 }: {
   user: UserDTO;
@@ -53,6 +55,8 @@ export function AppShell({
   podeTriar?: boolean;
   /** Mostrar o convite único de feedback nesta sessão. */
   convite?: boolean;
+  /** E-mail ainda não confirmado — mostra o aviso, sem bloquear nada. */
+  emailPendente?: boolean;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -184,6 +188,8 @@ export function AppShell({
             onOpenTask={(id) => setOpenTaskId(id)}
             desktop={desktop}
           />
+
+          {emailPendente && <ConfirmarEmailAviso email={user.email} />}
 
           <div className="flex min-h-0 flex-1">
             {/* gaveta no mobile */}

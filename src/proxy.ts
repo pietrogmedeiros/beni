@@ -6,6 +6,13 @@ const COOKIE_NAME = "beni_session";
 /** Rotas de entrada: quem já está logado é levado para o app. */
 const AUTH_PATHS = ["/login", "/register"];
 
+/**
+ * Telas de conta que valem **mesmo estando logado**: quem esqueceu a senha
+ * numa aba e tem sessão em outra precisa conseguir trocar, e o link de
+ * confirmação costuma ser aberto por quem já entrou.
+ */
+const ACCOUNT_PATHS = ["/esqueci", "/redefinir", "/confirmar"];
+
 /** Rotas abertas: acessíveis sem conta (link de aprovação do stakeholder). */
 const OPEN_PATHS = [
   "/aprovar",
@@ -32,6 +39,10 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (OPEN_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  if (ACCOUNT_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 

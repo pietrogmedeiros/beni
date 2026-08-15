@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { enviarResumoDiario } from "@/server/notify";
 import { emailEnabled } from "@/server/email";
 import { removeUpload } from "@/lib/uploads";
+import { limparTokensVencidos } from "@/server/auth-tokens";
 
 /**
  * Agendamento do resumo diário, dentro do próprio processo.
@@ -61,10 +62,14 @@ export function iniciarAgendador() {
   iniciado = true;
 
   // a limpeza não depende de e-mail configurado
-  const limpar = () =>
+  const limpar = () => {
     limparAnexosSoltos().catch((e) =>
       console.error("[limpeza] falhou:", (e as Error).message),
     );
+    limparTokensVencidos().catch((e) =>
+      console.error("[limpeza] tokens:", (e as Error).message),
+    );
+  };
   setTimeout(limpar, 90_000);
   setInterval(limpar, 6 * 60 * 60_000).unref?.();
 

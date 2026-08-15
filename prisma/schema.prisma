@@ -64,6 +64,11 @@ enum ApprovalStatus {
   REJECTED
 }
 
+enum TokenPurpose {
+  RESET_SENHA
+  CONFIRMAR_EMAIL
+}
+
 enum FeedbackKind {
   PROBLEMA
   IDEIA
@@ -111,6 +116,14 @@ model User {
   emailOnAssign    Boolean @default(true)
   emailOnApproval  Boolean @default(true)
   emailDailyDigest Boolean @default(true)
+
+  /// Quando o dono do endereço provou que é ele. Nulo = ainda não confirmou.
+  emailVerifiedAt DateTime?
+  /// Muda a cada redefinição de senha e derruba as sessões antigas. Sem isto,
+  /// trocar a senha não expulsa quem já estava dentro — que é justamente o
+  /// motivo de alguém trocar a senha às pressas.
+  sessionEpoch    Int       @default(0)
+  authTokens      AuthToken[]
 
   feedbacks Feedback[] @relation("FeedbackAuthor")
   /// Quando o convite para dar feedback foi mostrado. Preenchido tanto ao
@@ -707,4 +720,25 @@ model Feedback {
 
   @@index([status, createdAt])
   @@index([userId])
+}
+
+
+/// Token de uso único para recuperar senha e confirmar e-mail.
+///
+/// Guarda só o hash, como as chaves de API: o valor completo viaja no e-mail
+/// e nunca é gravado. Quem ler o banco não consegue entrar na conta de
+/// ninguém — no máximo invalidar um pedido.
+model AuthToken {
+  id        String       @id @default(cuid())
+  userId    String
+  purpose   TokenPurpose
+  tokenHash String       @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
 }

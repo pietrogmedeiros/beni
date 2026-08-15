@@ -11,6 +11,8 @@ import {
 } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { DEFAULT_STATUSES, PALETTE } from "@/lib/constants";
+import { criarToken } from "@/server/auth-tokens";
+import { enviarConfirmacao } from "@/server/actions/account";
 
 export type AuthState = { error?: string } | undefined;
 
@@ -43,7 +45,12 @@ export async function loginAction(
     return { error: "E-mail ou senha incorretos" };
   }
 
-  await createSession({ userId: user.id, email: user.email, name: user.name });
+  await createSession({
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    epoch: user.sessionEpoch,
+  });
   redirect(String(formData.get("next") || "/"));
 }
 
@@ -113,7 +120,22 @@ export async function registerAction(
     })),
   });
 
-  await createSession({ userId: user.id, email: user.email, name: user.name });
+  // O link de confirmação sai agora, mas a conta já funciona: barrar a entrada
+  // até o clique custaria mais gente do que ganharia em endereços válidos.
+  // Falha aqui não pode derrubar um cadastro que já deu certo.
+  try {
+    const raw = await criarToken(user.id, "CONFIRMAR_EMAIL");
+    if (raw) await enviarConfirmacao(user.email, user.name, raw);
+  } catch (error) {
+    console.error("[cadastro] confirmação não saiu:", (error as Error).message);
+  }
+
+  await createSession({
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    epoch: user.sessionEpoch,
+  });
   redirect("/");
 }
 

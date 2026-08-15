@@ -123,8 +123,11 @@ export async function enviarResumoDiario() {
   amanha.setDate(amanha.getDate() + 1);
   const dia = hoje.toISOString().slice(0, 10);
 
+  // endereço não confirmado fica de fora: um e-mail diário para uma caixa que
+  // não existe vira devolução repetida, e devolução repetida derruba a
+  // reputação do domínio para todo mundo
   const pessoas = await db.user.findMany({
-    where: { emailDailyDigest: true },
+    where: { emailDailyDigest: true, emailVerifiedAt: { not: null } },
     select: { id: true, name: true, email: true },
   });
 

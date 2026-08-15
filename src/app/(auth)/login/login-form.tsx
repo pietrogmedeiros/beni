@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -42,7 +43,15 @@ export function LoginForm({ next, demo }: { next: string; demo: boolean }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Senha</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Senha</Label>
+          <Link
+            href="/esqueci"
+            className="text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            Esqueci a senha
+          </Link>
+        </div>
         <Input
           id="password"
           name="password"

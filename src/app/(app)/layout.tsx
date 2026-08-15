@@ -34,6 +34,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       desktop={isDesktop}
       podeTriar={podeTriar}
       convite={convite}
+      emailPendente={!ctx.user.emailVerifiedAt}
     >
       {children}
     </AppShell>
