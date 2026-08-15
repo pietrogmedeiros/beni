@@ -13,7 +13,19 @@ export type UserDTO = {
   avatarColor: string;
   /** Nulo enquanto o dono do endereço não clicar no link de confirmação. */
   emailVerifiedAt?: string | null;
+  /** Mascote escolhido como avatar, se houver. */
+  avatarMascot?: string | null;
+  /**
+   * Endereço da foto de perfil, já com o carimbo da última troca. Nulo quando
+   * a pessoa não subiu foto.
+   */
+  avatarFoto?: string | null;
 };
+
+/** Monta o endereço da foto com o carimbo que invalida o cache do navegador. */
+export function urlDaFoto(userId: string, updatedAt: Date | null | undefined) {
+  return updatedAt ? `/api/avatar/${userId}?v=${updatedAt.getTime()}` : null;
+}
 
 export type TagDTO = { id: string; name: string; color: string };
 
@@ -146,7 +158,9 @@ export const getWorkspaceContext = cache(async () => {
     }),
     db.membership.findMany({
       where: { workspaceId: workspace.id },
-      include: { user: true },
+      // o carimbo da foto vem junto para montar o endereço com `?v=`; os bytes
+      // ficam onde estão, e são buscados pela rota só quando a imagem carrega
+      include: { user: { include: { avatarFoto: { select: { updatedAt: true } } } } },
     }),
     db.tag.findMany({
       where: { workspaceId: workspace.id },
@@ -161,6 +175,8 @@ export const getWorkspaceContext = cache(async () => {
       email: user.email,
       avatarColor: user.avatarColor,
       emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+      avatarMascot: user.avatarMascot,
+      avatarFoto: urlDaFoto(user.id, user.avatarFoto?.updatedAt),
     } satisfies UserDTO,
     workspace: { id: workspace.id, name: workspace.name, slug: workspace.slug },
     projects: projects.map((p) => ({
@@ -193,6 +209,8 @@ export const getWorkspaceContext = cache(async () => {
       name: m.user.name,
       email: m.user.email,
       avatarColor: m.user.avatarColor,
+      avatarMascot: m.user.avatarMascot,
+      avatarFoto: urlDaFoto(m.user.id, m.user.avatarFoto?.updatedAt),
       role: m.role,
     })),
     tags: tags.map((t) => ({ id: t.id, name: t.name, color: t.color })),
@@ -387,7 +405,9 @@ export const getTaskDetail = cache(async (taskId: string) => {
       action: a.action,
       meta: a.meta as Record<string, unknown> | null,
       createdAt: a.createdAt.toISOString(),
-      user: a.user ? { id: a.user.id, name: a.user.name } : null,
+      user: a.user
+        ? { id: a.user.id, name: a.user.name, avatarColor: a.user.avatarColor }
+        : null,
     })),
   };
 });

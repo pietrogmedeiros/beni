@@ -46,6 +46,7 @@ import {
   type NotificationItem,
   type RecentTask,
 } from "@/server/actions/notifications";
+import { UserAvatar } from "@/components/user-avatar";
 import { cn, initials, readableOn } from "@/lib/utils";
 import { useChatStream } from "@/lib/chat-stream";
 import type { UserDTO } from "@/server/queries";
@@ -433,17 +434,9 @@ function AccountMenu({ user }: { user: UserDTO }) {
         className="ml-1 rounded-full transition hover:opacity-80"
         aria-label="Sua conta"
       >
-        <Avatar className="size-7">
-          <AvatarFallback
-            className="text-[10px] font-semibold"
-            style={{
-              backgroundColor: user.avatarColor,
-              color: readableOn(user.avatarColor),
-            }}
-          >
-            {initials(user.name)}
-          </AvatarFallback>
-        </Avatar>
+        {/* o mesmo componente do resto do app: montar o avatar na mão aqui
+            fazia a barra do topo ignorar foto e mascote */}
+        <UserAvatar user={user} showTooltip={false} className="size-7" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-60">

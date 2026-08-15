@@ -86,6 +86,9 @@ export const requireUser = cache(async () => {
         include: { workspace: true },
         orderBy: { createdAt: "asc" },
       },
+      // só o carimbo: serve para montar o endereço da foto sem carregar os
+      // bytes dela em toda requisição autenticada
+      avatarFoto: { select: { updatedAt: true } },
     },
   });
 

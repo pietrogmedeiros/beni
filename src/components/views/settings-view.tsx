@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { UserAvatar } from "@/components/user-avatar";
+import { AvatarCard } from "@/components/settings/avatar-card";
 import { TagChip } from "@/components/task/task-badges";
 import { PALETTE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -74,13 +75,9 @@ export function SettingsView({
             Como você aparece para o time.
           </p>
 
-          <div className="flex items-start gap-4">
-            <UserAvatar
-              user={{ name, avatarColor }}
-              showTooltip={false}
-              className="size-14 text-base"
-            />
-            <div className="flex-1 space-y-3">
+          <AvatarCard user={user} />
+
+          <div className="mt-4 space-y-3">
               <div className="space-y-1.5">
                 <Label htmlFor="u-name">Nome</Label>
                 <Input
@@ -103,7 +100,7 @@ export function SettingsView({
                 <Input value={user.email} disabled />
               </div>
               <div className="space-y-1.5">
-                <Label>Cor do avatar</Label>
+                <Label>Cor das iniciais</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {PALETTE.map((c) => (
                     <button
@@ -126,7 +123,6 @@ export function SettingsView({
                   ))}
                 </div>
               </div>
-            </div>
           </div>
         </section>
 

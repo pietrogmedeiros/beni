@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { ehMascoteValido } from "@/lib/avatares";
 import { db } from "@/lib/db";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { DEFAULT_STATUSES } from "@/lib/constants";
@@ -239,5 +240,35 @@ export async function updateProfile(input: {
 export async function updateWorkspaceName(name: string) {
   const workspace = await currentWorkspace();
   await db.workspace.update({ where: { id: workspace.id }, data: { name } });
+  revalidatePath("/", "layout");
+}
+
+/**
+ * Escolhe um mascote como avatar, ou volta para as iniciais com `null`.
+ *
+ * Apaga a foto: manter as duas coisas guardadas faria o avatar depender de
+ * uma regra de precedência invisível, e quem trocasse de volta encontraria
+ * uma foto que achava ter substituído.
+ */
+export async function escolherMascote(chave: string | null) {
+  const user = await requireUser();
+  if (chave !== null && !ehMascoteValido(chave)) {
+    throw new Error("Mascote desconhecido");
+  }
+
+  await db.$transaction([
+    db.avatar.deleteMany({ where: { userId: user.id } }),
+    db.user.update({ where: { id: user.id }, data: { avatarMascot: chave } }),
+  ]);
+  revalidatePath("/", "layout");
+}
+
+/** Tira a foto e volta para as iniciais. */
+export async function removerFotoDePerfil() {
+  const user = await requireUser();
+  await db.$transaction([
+    db.avatar.deleteMany({ where: { userId: user.id } }),
+    db.user.update({ where: { id: user.id }, data: { avatarMascot: null } }),
+  ]);
   revalidatePath("/", "layout");
 }

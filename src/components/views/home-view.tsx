@@ -219,15 +219,10 @@ export function HomeView({
               <ul className="space-y-3">
                 {activity.slice(0, 8).map((a) => (
                   <li key={a.id} className="flex gap-2.5">
+                    {/* passa o objeto inteiro: sem o id o avatar não consegue
+                        procurar a foto ou o mascote da pessoa */}
                     <UserAvatar
-                      user={
-                        a.user
-                          ? {
-                              name: a.user.name,
-                              avatarColor: a.user.avatarColor,
-                            }
-                          : null
-                      }
+                      user={a.user}
                       showTooltip={false}
                       className="mt-0.5 size-6"
                     />
