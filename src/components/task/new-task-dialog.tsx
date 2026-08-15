@@ -154,7 +154,13 @@ function NewTaskForm({
           {!defaults.parentId && (
             <div className="space-y-1.5">
               <Label>Projeto</Label>
-              <Select value={projectId} onValueChange={(v) => changeProject(v ?? "")}>
+              <Select
+                value={projectId}
+                onValueChange={(v) => changeProject(v ?? "")}
+                // sem o mapa o Base UI mostra o valor cru — que aqui é o id do
+                // banco. Era o que aparecia no lugar do nome do projeto.
+                items={Object.fromEntries(projects.map((p) => [p.id, p.name]))}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>

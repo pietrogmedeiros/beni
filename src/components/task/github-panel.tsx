@@ -256,7 +256,13 @@ export function GithubPanel({
 
         <div className="flex gap-2">
           {repos.length > 1 && (
-            <Select value={repoId} onValueChange={(v) => setRepoId(v ?? "")}>
+            <Select
+              value={repoId}
+              onValueChange={(v) => setRepoId(v ?? "")}
+              items={Object.fromEntries(
+                repos.map((r) => [r.id, `${r.owner}/${r.name}`]),
+              )}
+            >
               <SelectTrigger className="h-8 w-44">
                 <SelectValue />
               </SelectTrigger>

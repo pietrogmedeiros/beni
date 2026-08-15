@@ -3,6 +3,17 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Check,
   Copy,
   FileText,
@@ -53,6 +64,15 @@ export function NotesView({
   const [notes, setNotes] = useState(initialNotes);
   const [abertaId, setAbertaId] = useState<string | null>(initialNotes[0]?.id ?? null);
   const [aberta, setAberta] = useState<NoteDetail | null>(null);
+  /**
+   * O título como está na tela agora.
+   *
+   * O campo é não controlado e o salvamento é adiado, então `aberta.title`
+   * fica velho enquanto a pessoa digita. Isso não aparecia em lugar nenhum
+   * até a confirmação de exclusão nomear a anotação — e nomear errado é pior
+   * do que não nomear: dá para apagar a anotação achando que é outra.
+   */
+  const [tituloNaTela, setTituloNaTela] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [dica, setDica] = useState(false);
@@ -72,6 +92,9 @@ export function NotesView({
     let vivo = true;
     const id = requestAnimationFrame(() => {
       if (!vivo) return;
+      // o título digitado pertence à anotação anterior; sem zerar, ele vazaria
+      // para a confirmação de exclusão da próxima
+      setTituloNaTela("");
       if (!abertaId) {
         setAberta(null);
         return;
@@ -236,7 +259,10 @@ export function NotesView({
             <div className="mb-3 flex items-start gap-2">
               <Input
                 defaultValue={aberta.title}
-                onChange={(e) => agendarSalvar({ title: e.target.value })}
+                onChange={(e) => {
+                  setTituloNaTela(e.target.value);
+                  agendarSalvar({ title: e.target.value });
+                }}
                 placeholder="Sem título"
                 className="h-auto flex-1 border-0 bg-transparent px-0 text-2xl font-semibold tracking-tight shadow-none focus-visible:ring-0"
               />
@@ -252,14 +278,41 @@ export function NotesView({
                     setNotes(await listNotes(projectId));
                   }}
                 />
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Excluir anotação"
-                  onClick={() => excluir(aberta.id)}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
+                {/* anotação é texto longo e não tem desfazer; excluir tarefa
+                    já pedia confirmação, e isto aqui tinha ficado de fora */}
+                <AlertDialog>
+                  <AlertDialogTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Excluir anotação"
+                      />
+                    }
+                  >
+                    <Trash2 className="size-4" />
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Excluir “{tituloNaTela || aberta.title || "Sem título"}”?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        A anotação e as imagens dentro dela são apagadas, e não dá
+                        para desfazer.
+                        {aberta.shareUrl
+                          ? " O link público que você compartilhou para de funcionar."
+                          : ""}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => excluir(aberta.id)}>
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
 

@@ -293,6 +293,7 @@ export function ListView({
                           statuses={statuses}
                           members={members}
                           selected={selected.includes(task.id)}
+                          selecionando={selected.length > 0}
                           dragging={activeId === task.id}
                           onSelect={(v) =>
                             setSelected((s) =>
@@ -348,6 +349,7 @@ function SortableRow({
   statuses,
   members,
   selected,
+  selecionando,
   dragging,
   onSelect,
   onOpen,
@@ -358,6 +360,8 @@ function SortableRow({
   statuses: StatusDTO[];
   members: { id: string; name: string; email: string; avatarColor: string }[];
   selected: boolean;
+  /** Já há alguma linha marcada — então todas mostram a caixa. */
+  selecionando: boolean;
   dragging: boolean;
   onSelect: (checked: boolean) => void;
   onOpen: () => void;
@@ -387,10 +391,21 @@ function SortableRow({
         <GripVertical className="size-3.5" />
       </button>
 
+      {/* Em repouso a linha mostrava dois controles quase idênticos lado a
+          lado — um quadrado para selecionar, um círculo para concluir — e as
+          pessoas erravam qual era qual. A seleção só aparece quando é pedida:
+          ao passar o mouse, ao focar pelo teclado, ou quando já há alguma
+          linha marcada. Sobra um único controle redondo, que é "concluir". */}
       <Checkbox
         checked={selected}
         onCheckedChange={(v) => onSelect(!!v)}
         aria-label="Selecionar tarefa"
+        className={cn(
+          "transition-opacity",
+          selected || selecionando
+            ? "opacity-100"
+            : "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100",
+        )}
       />
 
       <button

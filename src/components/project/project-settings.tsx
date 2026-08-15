@@ -430,6 +430,12 @@ function StatusRow({
       <Select
         value={status.category}
         onValueChange={(v) => v && onChange({ category: v })}
+        items={Object.fromEntries(
+          STATUS_CATEGORIES.map((c) => [
+            c,
+            STATUS_CATEGORY_META[c as StatusCategoryValue].label,
+          ]),
+        )}
       >
         <SelectTrigger className="h-8 w-40">
           <SelectValue />
