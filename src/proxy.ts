@@ -23,6 +23,9 @@ const OPEN_PATHS = [
   "/.well-known",
   "/api/oauth/register",
   "/api/oauth/token",
+  // a entrada é um POST nativo de formulário e acontece justamente para quem
+  // ainda não tem sessão
+  "/api/session/login",
 ];
 
 async function isValid(token: string | undefined) {

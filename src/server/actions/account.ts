@@ -56,16 +56,17 @@ export async function pedirRecuperacao(email: string) {
   await enviar({
     para: user.email,
     assunto: "Redefinir sua senha do Beni",
-    titulo: "Vamos trocar sua senha",
+    titulo: "Redefinir sua senha",
     corpo: [
-      `Alguém — esperamos que você — pediu para redefinir a senha de <strong>${user.email}</strong>.`,
-      "O link vale por uma hora e só funciona uma vez.",
-      "Se não foi você, pode ignorar: a senha atual continua valendo.",
+      `Recebemos um pedido para redefinir a senha de <strong>${user.email}</strong>.`,
+      "O link abaixo vale por uma hora e só pode ser usado uma vez.",
+      "Se não foi você quem pediu, ignore este e-mail. Sua senha atual continua valendo.",
     ],
     botao: {
       texto: "Escolher nova senha",
       url: `${appUrl()}/redefinir/${encodeURIComponent(raw)}`,
     },
+    transacional: true,
   });
 
   return generico;
@@ -118,6 +119,7 @@ export async function redefinirSenha(raw: string, senha: string) {
       "Se não foi você, redefina a senha agora mesmo — quem trocou tem acesso à sua caixa de e-mail.",
     ],
     botao: { texto: "Entrar no Beni", url: `${appUrl()}/login` },
+    transacional: true,
   });
 
   return { ok: true as const };
@@ -159,6 +161,7 @@ export async function enviarConfirmacao(email: string, nome: string, raw: string
       texto: "Confirmar meu e-mail",
       url: `${appUrl()}/confirmar/${encodeURIComponent(raw)}`,
     },
+    transacional: true,
   });
 }
 

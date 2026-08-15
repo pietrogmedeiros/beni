@@ -3,12 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import {
-  createSession,
-  destroySession,
-  hashPassword,
-  verifyPassword,
-} from "@/lib/auth";
+import { createSession, destroySession, hashPassword } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { DEFAULT_STATUSES, PALETTE } from "@/lib/constants";
 import { criarToken } from "@/server/auth-tokens";
@@ -16,43 +11,11 @@ import { enviarConfirmacao } from "@/server/actions/account";
 
 export type AuthState = { error?: string } | undefined;
 
-const loginSchema = z.object({
-  email: z.string().email("E-mail inválido"),
-  password: z.string().min(1, "Informe a senha"),
-});
-
 const registerSchema = z.object({
   name: z.string().min(2, "Informe seu nome"),
   email: z.string().email("E-mail inválido"),
   password: z.string().min(6, "A senha precisa de pelo menos 6 caracteres"),
 });
-
-export async function loginAction(
-  _prev: AuthState,
-  formData: FormData,
-): Promise<AuthState> {
-  const parsed = loginSchema.safeParse({
-    email: String(formData.get("email") ?? "").trim().toLowerCase(),
-    password: String(formData.get("password") ?? ""),
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos" };
-  }
-
-  const user = await db.user.findUnique({ where: { email: parsed.data.email } });
-  if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
-    return { error: "E-mail ou senha incorretos" };
-  }
-
-  await createSession({
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    epoch: user.sessionEpoch,
-  });
-  redirect(String(formData.get("next") || "/"));
-}
 
 export async function registerAction(
   _prev: AuthState,

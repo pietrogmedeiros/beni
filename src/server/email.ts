@@ -35,6 +35,14 @@ type Envio = {
   corpo: string[];
   botao?: { texto: string; url: string };
   rodape?: string;
+  /**
+   * E-mail de conta ou segurança (redefinir senha, confirmar endereço).
+   *
+   * Some o convite para desligar avisos: não dá para "cancelar inscrição" de
+   * um link de recuperação de senha, e oferecer isso num e-mail de segurança
+   * confunde justamente quem está desconfiado.
+   */
+  transacional?: boolean;
 };
 
 /** Escapa o que vai para dentro do HTML — nome de tarefa é texto de usuário. */
@@ -53,7 +61,7 @@ function esc(texto: string) {
  * boa parte do CSS moderno — o que é feio no navegador é o que funciona no
  * Outlook.
  */
-function montarHtml({ titulo, corpo, botao, rodape }: Envio) {
+function montarHtml({ titulo, corpo, botao, rodape, transacional }: Envio) {
   const paragrafos = corpo
     .map(
       (p) =>
@@ -78,8 +86,11 @@ function montarHtml({ titulo, corpo, botao, rodape }: Envio) {
       ${acao}
       <p style="margin:18px 0 0;padding-top:14px;border-top:1px solid #f0efed;font-size:12px;color:#a1a1aa">
         ${rodape ? `${esc(rodape)}<br />` : ""}
-        Para não receber mais estes avisos, ajuste em
-        <a href="${appUrl()}/settings" style="color:#a16207">Configurações</a>.
+        ${
+          transacional
+            ? "Este e-mail faz parte da segurança da sua conta no Beni."
+            : `Para não receber mais estes avisos, ajuste em <a href="${appUrl()}/settings" style="color:#a16207">Configurações</a>.`
+        }
       </p>
     </td></tr>
   </table>
