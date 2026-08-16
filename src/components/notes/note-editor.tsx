@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { toast } from "sonner";
 import { CheckSquare, GripVertical, Loader2, Plus, Square, Trash2, X } from "lucide-react";
 import { newBlock, SHORTCUTS, type Block, type BlockType } from "@/lib/notes";
-import { RichText } from "@/components/notes/rich-text";
+import { RichText } from "@/components/rich-text";
 import { withBase } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
 

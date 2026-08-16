@@ -1,4 +1,5 @@
 "use client";
+import { RichText } from "@/components/rich-text";
 import { AttachmentGallery } from "@/components/task/attachment-gallery";
 import type { AttachmentDTO } from "@/server/actions/attachments";
 
@@ -111,20 +112,12 @@ export function ApprovalScreen({
             )}
 
             {approval.message && (
-              <blockquote className="rounded-lg border-l-2 border-primary/50 bg-muted/60 px-4 py-3 text-sm">
-                {approval.message}
+              // `whitespace-pre-wrap` porque o recado é escrito num campo de
+              // texto comum: sem isto, parágrafos que a pessoa separou viram
+              // um bloco só na tela do cliente
+              <blockquote className="rounded-lg border-l-2 border-primary/50 bg-muted/60 px-4 py-3 text-sm whitespace-pre-wrap">
+                <RichText text={approval.message} />
               </blockquote>
-            )}
-
-            {approval.task.description && (
-              <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Detalhes da entrega
-                </p>
-                <p className="whitespace-pre-wrap text-sm text-foreground/90">
-                  {approval.task.description}
-                </p>
-              </div>
             )}
 
             {attachments.length > 0 && (

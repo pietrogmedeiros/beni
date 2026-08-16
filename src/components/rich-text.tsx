@@ -1,7 +1,13 @@
 import { Fragment } from "react";
 
 /**
- * Formatação dentro da linha: **negrito**, *itálico*, `código` e [link](url).
+ * Formatação dentro da linha: **negrito**, *itálico*, `código` e [link](url),
+ * mais endereços soltos que viram link sozinhos.
+ *
+ * Nasceu para as anotações e saiu de lá quando as telas públicas precisaram do
+ * mesmo tratamento: descrição de tarefa e recado de aprovação chegam ao cliente
+ * com endereços dentro, e endereço que não clica obriga a pessoa a copiar à
+ * mão de dentro de um parágrafo.
  *
  * O texto é quebrado em pedaços e cada pedaço vira um elemento que **nós**
  * escolhemos — nunca `dangerouslySetInnerHTML`. Assim uma anotação publicada

@@ -11,6 +11,7 @@ import {
   Send,
   X,
 } from "lucide-react";
+import { RichText } from "@/components/rich-text";
 import { BeniLogo } from "@/components/logo";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -235,7 +236,7 @@ function ThreadBody({
       <div className="thin-scrollbar min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
         {thread.description && (
           <p className="whitespace-pre-wrap rounded-lg bg-muted/60 p-3 text-sm">
-            {thread.description}
+            <RichText text={thread.description} />
           </p>
         )}
 
@@ -277,7 +278,7 @@ function ThreadBody({
                       </span>
                     </p>
                     <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground/90">
-                      {c.body}
+                      <RichText text={c.body} />
                     </p>
                   </div>
                 </li>

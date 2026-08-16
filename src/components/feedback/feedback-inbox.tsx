@@ -11,6 +11,7 @@ import {
   Send,
 } from "lucide-react";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { RichText } from "@/components/rich-text";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -186,7 +187,9 @@ function Cartao({ item, projetos }: { item: FeedbackDTO; projetos: Projeto[] }) 
         <span className="ml-auto">{formatDate(item.createdAt)}</span>
       </header>
 
-      <p className="mt-3 text-sm whitespace-pre-wrap text-foreground">{item.message}</p>
+      <p className="mt-3 text-sm whitespace-pre-wrap text-foreground">
+        <RichText text={item.message} />
+      </p>
 
       {item.imagens.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">

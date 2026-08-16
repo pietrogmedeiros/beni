@@ -134,7 +134,9 @@ export async function loadPublicApproval(token: string) {
       id: approval.task.id,
       number: approval.task.number,
       title: approval.task.title,
-      description: approval.task.description,
+      // a descrição **não** vai: ela é anotação interna da equipe, e o link de
+      // aprovação abre para gente de fora. Esconder na tela não bastaria — o
+      // texto viajaria no conteúdo da página e bastaria abrir o inspetor.
       type: approval.task.type as string,
       priority: approval.task.priority as string,
       dueDate: approval.task.dueDate?.toISOString() ?? null,

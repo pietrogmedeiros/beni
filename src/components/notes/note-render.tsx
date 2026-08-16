@@ -1,6 +1,6 @@
 import { CheckSquare, Square } from "lucide-react";
 import type { Block } from "@/lib/notes";
-import { RichText } from "@/components/notes/rich-text";
+import { RichText } from "@/components/rich-text";
 import { withBase } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
 
