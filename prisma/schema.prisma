@@ -778,11 +778,16 @@ model UsageEvent {
   name        String
   userId      String?
   workspaceId String?
-  /// Números pequenos de contexto (quantidade, origem). Nada identificável.
+  /// Números pequenos de contexto (quantidade). Nada identificável.
   meta        Json?
+  /// De onde veio: "app" (o .dmg de macOS), "celular" ou "navegador".
+  /// Fica em coluna e não em `meta` porque toda métrica pode ser cortada por
+  /// ela — saber que 40% do uso do Gantt vem do app muda decisão de produto.
+  origem      String?
   createdAt   DateTime @default(now())
 
   @@index([name, createdAt])
   @@index([workspaceId, createdAt])
   @@index([userId, createdAt])
+  @@index([origem, createdAt])
 }

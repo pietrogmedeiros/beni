@@ -1,13 +1,25 @@
 "use server";
 
+import { headers } from "next/headers";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { isFeedbackAdmin } from "@/server/feedback";
 import {
   carregarPainel,
+  origemDoAgente,
   registrar,
   type Evento,
   type Painel,
 } from "@/server/telemetria";
+
+/**
+ * De onde veio o pedido.
+ *
+ * Server Action enxerga os cabeçalhos, então o agente chega aqui sem o cliente
+ * precisar contar nada — e sem dar para a tela mentir sobre a própria origem.
+ */
+async function origem() {
+  return origemDoAgente((await headers()).get("user-agent"));
+}
 
 /**
  * Registra que uma tela foi vista.
@@ -21,7 +33,11 @@ export async function registrarVisao(evento: Evento) {
   try {
     const user = await requireUser();
     const workspace = user.memberships[0]?.workspaceId ?? null;
-    registrar(evento, { userId: user.id, workspaceId: workspace ?? undefined });
+    registrar(evento, {
+      userId: user.id,
+      workspaceId: workspace ?? undefined,
+      origem: await origem(),
+    });
   } catch {
     // sem sessão não há o que registrar, e isso não é erro
   }
@@ -44,8 +60,12 @@ export async function registrarAcao(
   meta?: Record<string, unknown>,
 ) {
   try {
-    const [user, workspace] = await Promise.all([requireUser(), currentWorkspace()]);
-    registrar(evento, { userId: user.id, workspaceId: workspace.id, meta });
+    const [user, workspace, de] = await Promise.all([
+      requireUser(),
+      currentWorkspace(),
+      origem(),
+    ]);
+    registrar(evento, { userId: user.id, workspaceId: workspace.id, origem: de, meta });
   } catch {
     /* idem */
   }

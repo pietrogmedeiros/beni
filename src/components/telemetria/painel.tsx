@@ -6,6 +6,13 @@ import { cn } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
 import type { Painel } from "@/server/telemetria";
 
+const ORIGENS: Record<string, string> = {
+  app: "App de Mac",
+  navegador: "Navegador",
+  celular: "Celular",
+  desconhecida: "Antes da medição",
+};
+
 const ROTULOS: Record<string, string> = {
   "visao.lista": "Lista",
   "visao.quadro": "Quadro",
@@ -154,6 +161,44 @@ export function TelemetriaPainel({
                   </tbody>
                 </table>
               </div>
+            )}
+          </Bloco>
+
+          <Bloco
+            titulo="Por onde acessam"
+            pergunta="Quem usa o app de Mac, quem usa o navegador e quem entra do celular — decide onde vale investir."
+          >
+            {dados.porOrigem.length === 0 ? (
+              <Vazio />
+            ) : (
+              <>
+                <Barras
+                  itens={dados.porOrigem.map((o) => ({
+                    rotulo: ORIGENS[o.origem] ?? o.origem,
+                    valor: o.pessoas,
+                  }))}
+                />
+                {dados.usamOApp.length > 0 && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="mb-1.5 text-xs text-muted-foreground">
+                      Usaram o app de Mac nos últimos 30 dias
+                    </p>
+                    <ul className="flex flex-col gap-1 text-sm">
+                      {dados.usamOApp.map((u) => (
+                        <li key={u.email} className="flex justify-between gap-3">
+                          <span className="truncate">
+                            {u.nome}{" "}
+                            <span className="text-muted-foreground">{u.email}</span>
+                          </span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">
+                            {u.ultimoUso.slice(0, 10)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </>
             )}
           </Bloco>
 

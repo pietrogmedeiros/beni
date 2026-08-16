@@ -21,6 +21,22 @@ import { feedbackAdmins } from "@/server/feedback";
  * nenhuma.
  */
 
+/**
+ * De onde a pessoa está usando.
+ *
+ * O app de macOS acrescenta `BeniDesktop` ao agente (ver `desktop/src/main.js`),
+ * e é o único sinal que separa app de navegador — o app é um cliente fino da
+ * mesma aplicação web, então nada mais no pedido difere.
+ */
+export type Origem = "app" | "celular" | "navegador";
+
+export function origemDoAgente(agente: string | null | undefined): Origem {
+  if (!agente) return "navegador";
+  if (agente.includes("BeniDesktop")) return "app";
+  if (/Mobile|Android|iPhone|iPad/i.test(agente)) return "celular";
+  return "navegador";
+}
+
 export type Evento =
   | "visao.lista"
   | "visao.quadro"
@@ -44,7 +60,12 @@ export type Evento =
 /** Grava e segue a vida. Não devolve promessa para ninguém esperar por ela. */
 export function registrar(
   name: Evento,
-  contexto?: { userId?: string; workspaceId?: string; meta?: Record<string, unknown> },
+  contexto?: {
+    userId?: string;
+    workspaceId?: string;
+    origem?: Origem;
+    meta?: Record<string, unknown>;
+  },
 ) {
   void db.usageEvent
     .create({
@@ -52,6 +73,7 @@ export function registrar(
         name,
         userId: contexto?.userId ?? null,
         workspaceId: contexto?.workspaceId ?? null,
+        origem: contexto?.origem ?? null,
         meta: (contexto?.meta ?? undefined) as never,
       },
     })
@@ -92,6 +114,10 @@ export type Painel = {
   armazenamento: { workspace: string; megabytes: number }[];
   /** Quem voltou em cada um dos últimos 14 dias. */
   ativosPorDia: { dia: string; pessoas: number }[];
+  /** Pessoas distintas por origem em 30 dias, e quantas usam as duas. */
+  porOrigem: { origem: string; pessoas: number; vezes: number }[];
+  /** Quem usou o app de macOS ao menos uma vez em 30 dias. */
+  usamOApp: { nome: string; email: string; ultimoUso: string }[];
 };
 
 const DIAS = 30;
@@ -143,6 +169,8 @@ export async function carregarPainel(incluirInternos = false): Promise<Painel> {
     porLinks,
     porArmazenamento,
     porDia,
+    porOrigem,
+    doApp,
   ] = await Promise.all([
     distintos(desde(1), foraUsuario),
     distintos(desde(7), foraUsuario),
@@ -210,6 +238,26 @@ export async function carregarPainel(incluirInternos = false): Promise<Painel> {
         AND NOT (COALESCE("userId", '') = ANY($2::text[]))
       GROUP BY 1 ORDER BY 1
     `, desde(14), foraUsuario),
+
+    db.$queryRawUnsafe<{ origem: string; pessoas: bigint; vezes: bigint }[]>(`
+      SELECT COALESCE(origem, 'desconhecida') AS origem,
+             COUNT(DISTINCT "userId")::bigint AS pessoas,
+             COUNT(*)::bigint AS vezes
+      FROM "${schema}"."UsageEvent"
+      WHERE "createdAt" >= $1
+        AND NOT (COALESCE("userId", '') = ANY($2::text[]))
+      GROUP BY 1 ORDER BY pessoas DESC
+    `, desde(DIAS), foraUsuario),
+
+    db.$queryRawUnsafe<{ nome: string; email: string; ultimo: Date }[]>(`
+      SELECT u.name AS nome, u.email, MAX(e."createdAt") AS ultimo
+      FROM "${schema}"."UsageEvent" e
+      JOIN "${schema}"."User" u ON u.id = e."userId"
+      WHERE e.origem = 'app' AND e."createdAt" >= $1
+        AND NOT (u.id = ANY($2::text[]))
+      GROUP BY u.id, u.name, u.email
+      ORDER BY ultimo DESC LIMIT 25
+    `, desde(DIAS), foraUsuario),
   ]);
 
   return {
@@ -235,6 +283,16 @@ export async function carregarPainel(incluirInternos = false): Promise<Painel> {
     ativosPorDia: porDia.map((r) => ({
       dia: new Date(r.dia).toISOString().slice(0, 10),
       pessoas: Number(r.pessoas),
+    })),
+    porOrigem: porOrigem.map((r) => ({
+      origem: r.origem,
+      pessoas: Number(r.pessoas),
+      vezes: Number(r.vezes),
+    })),
+    usamOApp: doApp.map((r) => ({
+      nome: r.nome,
+      email: r.email,
+      ultimoUso: new Date(r.ultimo).toISOString(),
     })),
   };
 }
