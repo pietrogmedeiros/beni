@@ -32,10 +32,10 @@ export async function podeVerTelemetria() {
   return isFeedbackAdmin(user.email);
 }
 
-export async function dadosDoPainel(): Promise<Painel> {
+export async function dadosDoPainel(incluirInternos = false): Promise<Painel> {
   const user = await requireUser();
   if (!(await isFeedbackAdmin(user.email))) throw new Error("SEM_PERMISSAO");
-  return carregarPainel();
+  return carregarPainel(incluirInternos);
 }
 
 /** Atalho para as ações do servidor que já sabem o workspace. */

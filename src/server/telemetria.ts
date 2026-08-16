@@ -1,6 +1,7 @@
 import "server-only";
 import { db, dbSchema } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { feedbackAdmins } from "@/server/feedback";
 
 /**
  * Telemetria de uso.
@@ -95,10 +96,40 @@ export type Painel = {
 
 const DIAS = 30;
 
-export async function carregarPainel(): Promise<Painel> {
+/**
+ * Quem é "de dentro": as contas que administram e os workspaces delas.
+ *
+ * Enquanto o produto é novo, quem mais usa é quem construiu — e isso distorce
+ * tudo. Uma pessoa testando o Gantt trinta vezes por dia faz o Gantt parecer o
+ * recurso mais amado do Beni, quando é só o desenvolvedor conferindo o
+ * próprio trabalho.
+ */
+async function deDentro() {
+  const emails = await feedbackAdmins();
+  if (emails.length === 0) return { usuarios: [] as string[], workspaces: [] as string[] };
+
+  const contas = await db.user.findMany({
+    where: { email: { in: emails, mode: "insensitive" } },
+    select: { id: true, memberships: { select: { workspaceId: true } } },
+  });
+
+  return {
+    usuarios: contas.map((c) => c.id),
+    workspaces: [...new Set(contas.flatMap((c) => c.memberships.map((m) => m.workspaceId)))],
+  };
+}
+
+export async function carregarPainel(incluirInternos = false): Promise<Painel> {
   const agora = new Date();
   const desde = (dias: number) => new Date(agora.getTime() - dias * 86_400_000);
   const schema = dbSchema();
+
+  const dentro = incluirInternos
+    ? { usuarios: [], workspaces: [] }
+    : await deDentro();
+  const semUsuarios = { id: { notIn: dentro.usuarios } };
+  const foraUsuario = dentro.usuarios;
+  const foraWorkspace = dentro.workspaces;
 
   const [
     ativosHoje,
@@ -113,12 +144,12 @@ export async function carregarPainel(): Promise<Painel> {
     porArmazenamento,
     porDia,
   ] = await Promise.all([
-    distintos(desde(1)),
-    distintos(desde(7)),
-    distintos(desde(30)),
-    db.user.count(),
-    db.user.count({ where: { emailVerifiedAt: { not: null } } }),
-    db.user.count({ where: { createdAt: { gte: desde(7) } } }),
+    distintos(desde(1), foraUsuario),
+    distintos(desde(7), foraUsuario),
+    distintos(desde(30), foraUsuario),
+    db.user.count({ where: semUsuarios }),
+    db.user.count({ where: { ...semUsuarios, emailVerifiedAt: { not: null } } }),
+    db.user.count({ where: { ...semUsuarios, createdAt: { gte: desde(7) } } }),
 
     // faixas de tamanho de workspace
     db.$queryRawUnsafe<{ faixa: string; quantidade: bigint }[]>(`
@@ -131,9 +162,10 @@ export async function carregarPainel(): Promise<Painel> {
         END AS faixa
         FROM "${schema}"."Workspace" w
         LEFT JOIN "${schema}"."Membership" m ON m."workspaceId" = w.id
+        WHERE NOT (w.id = ANY($1::text[]))
         GROUP BY w.id
       ) t GROUP BY faixa ORDER BY faixa
-    `),
+    `, foraWorkspace),
 
     db.$queryRawUnsafe<{ evento: string; workspaces: bigint; vezes: bigint }[]>(`
       SELECT name AS evento,
@@ -141,8 +173,9 @@ export async function carregarPainel(): Promise<Painel> {
              COUNT(*)::bigint AS vezes
       FROM "${schema}"."UsageEvent"
       WHERE "createdAt" >= $1
+        AND NOT (COALESCE("workspaceId", '') = ANY($2::text[]))
       GROUP BY name ORDER BY workspaces DESC, vezes DESC
-    `, desde(DIAS)),
+    `, desde(DIAS), foraWorkspace),
 
     db.$queryRawUnsafe<{ faixa: string; quantidade: bigint }[]>(`
       SELECT faixa, COUNT(*)::bigint AS quantidade FROM (
@@ -154,9 +187,10 @@ export async function carregarPainel(): Promise<Painel> {
         FROM "${schema}"."Workspace" w
         LEFT JOIN "${schema}"."Project" p ON p."workspaceId" = w.id
         LEFT JOIN "${schema}"."ProjectShare" s ON s."projectId" = p.id
+        WHERE NOT (w.id = ANY($1::text[]))
         GROUP BY w.id
       ) t GROUP BY faixa ORDER BY faixa
-    `),
+    `, foraWorkspace),
 
     db.$queryRawUnsafe<{ workspace: string; bytes: bigint }[]>(`
       SELECT w.name AS workspace, COALESCE(SUM(a.size), 0)::bigint AS bytes
@@ -164,16 +198,18 @@ export async function carregarPainel(): Promise<Painel> {
       LEFT JOIN "${schema}"."Project" p ON p."workspaceId" = w.id
       LEFT JOIN "${schema}"."Task" t ON t."projectId" = p.id
       LEFT JOIN "${schema}"."Attachment" a ON a."taskId" = t.id
+      WHERE NOT (w.id = ANY($1::text[]))
       GROUP BY w.id, w.name ORDER BY bytes DESC LIMIT 10
-    `),
+    `, foraWorkspace),
 
     db.$queryRawUnsafe<{ dia: Date; pessoas: bigint }[]>(`
       SELECT date_trunc('day', "createdAt") AS dia,
              COUNT(DISTINCT "userId")::bigint AS pessoas
       FROM "${schema}"."UsageEvent"
       WHERE "createdAt" >= $1
+        AND NOT (COALESCE("userId", '') = ANY($2::text[]))
       GROUP BY 1 ORDER BY 1
-    `, desde(14)),
+    `, desde(14), foraUsuario),
   ]);
 
   return {
@@ -203,9 +239,12 @@ export async function carregarPainel(): Promise<Painel> {
   };
 }
 
-async function distintos(desde: Date) {
+async function distintos(desde: Date, fora: string[]) {
   const linhas = await db.usageEvent.findMany({
-    where: { createdAt: { gte: desde }, userId: { not: null } },
+    where: {
+      createdAt: { gte: desde },
+      userId: { not: null, notIn: fora.length ? fora : undefined },
+    },
     distinct: ["userId"],
     select: { userId: true },
   });

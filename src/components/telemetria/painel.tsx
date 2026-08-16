@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { PageHeader } from "@/components/app-shell/page-header";
+import { cn } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
 import type { Painel } from "@/server/telemetria";
 
@@ -31,15 +33,52 @@ const ROTULOS: Record<string, string> = {
  * pergunta específica da divisão entre grátis e pago. Se um bloco não decide
  * nada, ele não deveria estar aqui.
  */
-export function TelemetriaPainel({ dados }: { dados: Painel }) {
+export function TelemetriaPainel({
+  dados,
+  internos,
+}: {
+  dados: Painel;
+  /** Está mostrando também quem administra? O padrão é não. */
+  internos: boolean;
+}) {
   const maiorDia = Math.max(1, ...dados.ativosPorDia.map((d) => d.pessoas));
 
   return (
     <>
       <PageHeader
         title="Telemetria"
-        subtitle="O que as pessoas usam, para decidir preço com dado"
+        subtitle={
+          internos
+            ? "Todo mundo, inclusive você"
+            : "Só quem é de fora — seus próprios dados estão fora da conta"
+        }
         icon={<BarChart3 className="size-5 text-primary" />}
+        actions={
+          <div className="flex rounded-lg border p-0.5 text-xs">
+            <Link
+              href="/telemetria"
+              className={cn(
+                "rounded-md px-2.5 py-1 transition",
+                internos
+                  ? "text-muted-foreground hover:text-foreground"
+                  : "bg-muted font-medium text-foreground",
+              )}
+            >
+              Sem os meus
+            </Link>
+            <Link
+              href="/telemetria?internos=1"
+              className={cn(
+                "rounded-md px-2.5 py-1 transition",
+                internos
+                  ? "bg-muted font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Tudo
+            </Link>
+          </div>
+        }
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
