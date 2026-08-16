@@ -56,16 +56,17 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           </ul>
         </div>
 
-        {/* o mascote encosta na borda de baixo em vez de flutuar no meio: assim
-            ele pertence à cena, e o clarão atrás resolve o amarelo dele sumindo
-            no amarelo do fundo */}
+        {/* a figura inteira, com folga até a borda: cortar o personagem na
+            primeira tela que a pessoa vê passa impressão de erro, não de
+            enquadramento. O clarão atrás resolve o amarelo dele sumindo no
+            amarelo do fundo */}
         <div
           aria-hidden
-          className="pointer-events-none absolute right-6 bottom-0 hidden h-[min(48vh,27rem)] xl:block"
+          className="pointer-events-none absolute right-10 bottom-10 hidden h-[min(52vh,30rem)] xl:block"
         >
-          <div className="absolute inset-[-18%] rounded-full bg-white/25 blur-3xl" />
+          <div className="absolute inset-[-20%] rounded-full bg-white/25 blur-3xl" />
           <BeniMascote
-            pose="apresentando"
+            pose="beni"
             className="relative h-full w-auto drop-shadow-[0_18px_28px_rgba(120,53,15,0.28)]"
           />
         </div>

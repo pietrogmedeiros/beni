@@ -44,7 +44,7 @@ export function ProjectsView({ projects }: { projects: ProjectSummary[] }) {
 
         {projects.length === 0 ? (
           <EmptyState
-            pose="andando"
+            pose="beni"
             titulo="Nenhum projeto por aqui ainda"
             descricao="Um projeto guarda as tarefas, o backlog e o prazo de uma entrega."
             acao={

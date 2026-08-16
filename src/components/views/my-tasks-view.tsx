@@ -122,7 +122,7 @@ export function MyTasksView({ tasks }: { tasks: TaskDTO[] }) {
       <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-8">
         {items.length === 0 && (
           <EmptyState
-            pose="parado"
+            pose="beni"
             titulo="Nada na sua mesa agora"
             descricao="Tarefas atribuídas a você aparecem aqui, ordenadas por prazo."
             className="py-14"

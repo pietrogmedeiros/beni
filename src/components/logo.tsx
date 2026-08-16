@@ -42,8 +42,15 @@ export function BeniLogo({
   );
 }
 
-/** As poses de corpo inteiro do mascote. */
+/**
+ * As figuras de corpo inteiro do mascote.
+ *
+ * `beni` é o personagem atual. As quatro poses antigas continuam aqui porque
+ * ainda aparecem em telas que não foram migradas — quando forem, saem daqui
+ * junto com os arquivos.
+ */
 export const POSES = {
+  beni: "beni",
   parado: "parado",
   andando: "andando",
   apresentando: "apresentando",
@@ -60,7 +67,7 @@ export type Pose = keyof typeof POSES;
  * não passamos pelo otimizador — então a escolha é explícita.
  */
 export function BeniMascote({
-  pose = "parado",
+  pose = "beni",
   pequeno = false,
   className,
 }: {

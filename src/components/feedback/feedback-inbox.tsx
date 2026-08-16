@@ -136,7 +136,7 @@ export function FeedbackInbox({
         <div className="mx-auto flex max-w-3xl flex-col gap-3 p-5">
           {visiveis.length === 0 ? (
             <EmptyState
-              pose="prancheta"
+              pose="beni"
               titulo={
                 itens.length === 0 ? "Nenhum recado ainda" : "Nada com esses filtros"
               }

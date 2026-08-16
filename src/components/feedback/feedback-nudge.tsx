@@ -56,7 +56,7 @@ export function FeedbackNudge({ onAbrir }: { onAbrir: () => void }) {
       </button>
 
       <div className="flex items-start gap-2.5">
-        <BeniMascote pose="prancheta" pequeno className="-mt-1 h-16 w-auto shrink-0" />
+        <BeniMascote pose="beni" pequeno className="-mt-1 h-16 w-auto shrink-0" />
         <div className="flex flex-col gap-2 pr-4">
           <p className="text-sm font-medium">Como está sendo usar o Beni?</p>
           <p className="text-xs leading-relaxed text-muted-foreground">

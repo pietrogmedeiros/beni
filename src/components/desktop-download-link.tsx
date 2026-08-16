@@ -36,7 +36,7 @@ export function DesktopDownloadLink() {
       className="group flex items-center gap-3 rounded-xl border bg-card p-3 transition hover:border-primary/50 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition group-hover:bg-primary/15">
-        <BeniMascote pose="andando" pequeno className="h-9 w-auto" />
+        <BeniMascote pose="beni" pequeno className="h-9 w-auto" />
       </span>
 
       <span className="min-w-0 flex-1">

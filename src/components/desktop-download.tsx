@@ -49,7 +49,7 @@ export function DesktopDownload() {
       </button>
 
       <div className="flex items-center gap-4">
-        <BeniMascote pose="andando" pequeno className="h-20 w-auto shrink-0" />
+        <BeniMascote pose="beni" pequeno className="h-20 w-auto shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 text-sm font-medium">
             <Apple className="size-3.5" />
