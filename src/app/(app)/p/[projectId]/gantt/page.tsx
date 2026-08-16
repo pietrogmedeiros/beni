@@ -4,6 +4,7 @@ import {
   getProjectDependencies,
   getProjectTasks,
 } from "@/server/queries";
+import { RegistrarVisao } from "@/components/registrar-visao";
 import { GanttView } from "@/components/views/gantt-view";
 import { ShareGanttButton } from "@/components/project/share-gantt-button";
 
@@ -19,10 +20,13 @@ export default async function GanttPage({
   if (!project) notFound();
 
   return (
-    <GanttView
-      tasks={tasks}
-      dependencies={dependencies}
-      toolbarExtra={<ShareGanttButton projectId={project.id} />}
-    />
+    <>
+      <RegistrarVisao evento="visao.gantt" />
+      <GanttView
+        tasks={tasks}
+        dependencies={dependencies}
+        toolbarExtra={<ShareGanttButton projectId={project.id} />}
+      />
+    </>
   );
 }

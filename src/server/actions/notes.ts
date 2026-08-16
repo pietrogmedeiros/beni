@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { registrarAcao } from "@/server/actions/telemetria";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { excerpt, newBlock, sanitizeBlocks, type Block } from "@/lib/notes";
 import { withBase } from "@/lib/base-path";
@@ -81,6 +82,7 @@ export async function getNote(noteId: string): Promise<NoteDetail> {
 }
 
 export async function createNote(projectId: string, title = "Sem título") {
+  void registrarAcao("anotacao.criar");
   const user = await requireUser();
   await projectOf(projectId);
 

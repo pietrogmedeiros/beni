@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProject, getProjectTasks } from "@/server/queries";
+import { RegistrarVisao } from "@/components/registrar-visao";
 import { BacklogView } from "@/components/views/backlog-view";
 
 export default async function BacklogPage({
@@ -13,11 +14,14 @@ export default async function BacklogPage({
   if (!project) notFound();
 
   return (
-    <BacklogView
-      projectId={project.id}
-      statuses={project.statuses}
-      sprints={project.sprints}
-      tasks={tasks}
-    />
+    <>
+      <RegistrarVisao evento="visao.backlog" />
+      <BacklogView
+        projectId={project.id}
+        statuses={project.statuses}
+        sprints={project.sprints}
+        tasks={tasks}
+      />
+    </>
   );
 }

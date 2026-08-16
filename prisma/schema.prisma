@@ -763,3 +763,26 @@ model Avatar {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+
+/// Um acontecimento de uso, para decidir o que vira plano pago com dado em vez
+/// de palpite.
+///
+/// Guarda o **fato**, nunca o conteúdo: que alguém abriu o Gantt, não o que
+/// estava no Gantt. Sem título de tarefa, sem texto de anotação. Isso mantém a
+/// tabela leve e evita que uma análise de produto vire um segundo lugar onde
+/// o trabalho dos clientes está guardado.
+model UsageEvent {
+  id          String   @id @default(cuid())
+  /// Nome pontuado: "visao.gantt", "tarefa.criar", "link.criar".
+  name        String
+  userId      String?
+  workspaceId String?
+  /// Números pequenos de contexto (quantidade, origem). Nada identificável.
+  meta        Json?
+  createdAt   DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([userId, createdAt])
+}

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProject, getProjectTasks } from "@/server/queries";
+import { RegistrarVisao } from "@/components/registrar-visao";
 import { ProjectDashboard } from "@/components/views/project-dashboard";
 
 export default async function ProjectDashboardPage({
@@ -13,10 +14,13 @@ export default async function ProjectDashboardPage({
   if (!project) notFound();
 
   return (
-    <ProjectDashboard
-      statuses={project.statuses}
-      sprints={project.sprints}
-      tasks={tasks}
-    />
+    <>
+      <RegistrarVisao evento="visao.painel" />
+      <ProjectDashboard
+        statuses={project.statuses}
+        sprints={project.sprints}
+        tasks={tasks}
+      />
+    </>
   );
 }

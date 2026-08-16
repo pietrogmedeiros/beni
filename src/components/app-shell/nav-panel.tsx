@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+  BarChart3,
   ChevronDown,
   ChevronRight,
   FolderKanban,
@@ -183,13 +184,22 @@ export function NavPanel({
           onNavigate={onNavigate}
         />
         {podeTriar && (
-          <PanelLink
-            href="/feedback"
-            icon={<Megaphone className="size-4" />}
-            label="Feedback recebido"
-            active={pathname.startsWith("/feedback")}
-            onNavigate={onNavigate}
-          />
+          <>
+            <PanelLink
+              href="/feedback"
+              icon={<Megaphone className="size-4" />}
+              label="Feedback recebido"
+              active={pathname.startsWith("/feedback")}
+              onNavigate={onNavigate}
+            />
+            <PanelLink
+              href="/telemetria"
+              icon={<BarChart3 className="size-4" />}
+              label="Telemetria"
+              active={pathname.startsWith("/telemetria")}
+              onNavigate={onNavigate}
+            />
+          </>
         )}
         {/* abre diálogo em vez de navegar: o recado é sobre a tela em que a
             pessoa está, e sair dela para contar já perde metade do contexto */}

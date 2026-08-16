@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { withBase } from "@/lib/base-path";
 import { avisarDecisaoDeAprovacao } from "@/server/notify";
+import { registrarAcao } from "@/server/actions/telemetria";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 
 const APPROVAL_TTL_DAYS = 30;
@@ -38,6 +39,7 @@ export async function requestApproval(input: {
   taskId: string;
   message?: string | null;
 }) {
+  void registrarAcao("aprovacao.pedir");
   const task = await assertTask(input.taskId);
   const user = await requireUser();
 

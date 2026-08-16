@@ -11,6 +11,7 @@ import {
   type ParsedTask,
 } from "@/lib/bulk-parse";
 import { syncTask } from "@/server/search";
+import { registrarAcao } from "@/server/actions/telemetria";
 import { PALETTE } from "@/lib/constants";
 
 export type BulkPreviewTask = ParsedTask & {
@@ -104,6 +105,7 @@ export async function createBulkTasks(
   text: string,
   mode: BulkMode | "auto" = "auto",
 ) {
+  void registrarAcao("tarefa.massa");
   const user = await requireUser();
   const workspace = await currentWorkspace();
 

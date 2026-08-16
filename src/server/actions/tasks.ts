@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { removeTaskFromIndex, syncTask } from "@/server/search";
+import { registrarAcao } from "@/server/actions/telemetria";
 import { avisarAtribuicao } from "@/server/notify";
 
 async function assertProject(projectId: string) {
@@ -65,6 +66,7 @@ const createSchema = z.object({
 export type CreateTaskInput = z.input<typeof createSchema>;
 
 export async function createTask(input: CreateTaskInput) {
+  void registrarAcao("tarefa.criar");
   const data = createSchema.parse(input);
   const project = await assertProject(data.projectId);
   const user = await requireUser();

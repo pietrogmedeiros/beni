@@ -4,6 +4,7 @@ import { enviarResumoDiario } from "@/server/notify";
 import { emailEnabled } from "@/server/email";
 import { removeUpload } from "@/lib/uploads";
 import { limparTokensVencidos } from "@/server/auth-tokens";
+import { limparEventosAntigos } from "@/server/telemetria";
 
 /**
  * Agendamento do resumo diário, dentro do próprio processo.
@@ -68,6 +69,9 @@ export function iniciarAgendador() {
     );
     limparTokensVencidos().catch((e) =>
       console.error("[limpeza] tokens:", (e as Error).message),
+    );
+    limparEventosAntigos().catch((e) =>
+      console.error("[limpeza] telemetria:", (e as Error).message),
     );
   };
   setTimeout(limpar, 90_000);

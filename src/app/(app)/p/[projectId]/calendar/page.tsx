@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProject, getProjectTasks } from "@/server/queries";
 import { CalendarView } from "@/components/views/calendar-view";
+import { RegistrarVisao } from "@/components/registrar-visao";
 
 export default async function CalendarPage({
   params,
@@ -12,5 +13,10 @@ export default async function CalendarPage({
   ]);
   if (!project) notFound();
 
-  return <CalendarView projectId={project.id} tasks={tasks} />;
+  return (
+    <>
+      <RegistrarVisao evento="visao.calendario" />
+      <CalendarView projectId={project.id} tasks={tasks} />
+    </>
+  );
 }

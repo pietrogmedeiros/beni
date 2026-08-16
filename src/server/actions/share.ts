@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { withBase } from "@/lib/base-path";
 import { currentWorkspace, getSession, requireUser } from "@/lib/auth";
 import { toTaskDTO } from "@/server/queries";
+import { registrarAcao } from "@/server/actions/telemetria";
 
 const SHARE_TTL_DAYS = 90;
 
@@ -51,6 +52,10 @@ export async function getOrCreateProjectShare(projectId: string) {
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + SHARE_TTL_DAYS);
+
+  // só aqui: a função também é chamada para *ler* o link existente, e contar
+  // isso como criação inflaria justamente o número que decide o teto do plano
+  void registrarAcao("link.criar");
 
   const share = await db.projectShare.create({
     data: {

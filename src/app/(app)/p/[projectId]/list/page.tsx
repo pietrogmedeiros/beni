@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProject, getProjectTasks } from "@/server/queries";
+import { RegistrarVisao } from "@/components/registrar-visao";
 import { ListView } from "@/components/views/list-view";
 
 export default async function ListPage({
@@ -13,11 +14,14 @@ export default async function ListPage({
   if (!project) notFound();
 
   return (
-    <ListView
-      projectId={project.id}
-      statuses={project.statuses}
-      sprints={project.sprints}
-      tasks={tasks}
-    />
+    <>
+      <RegistrarVisao evento="visao.lista" />
+      <ListView
+        projectId={project.id}
+        statuses={project.statuses}
+        sprints={project.sprints}
+        tasks={tasks}
+      />
+    </>
   );
 }

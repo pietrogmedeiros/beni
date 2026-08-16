@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProject, getProjectTasks } from "@/server/queries";
+import { RegistrarVisao } from "@/components/registrar-visao";
 import { BoardView } from "@/components/views/board-view";
 
 export default async function BoardPage({
@@ -13,10 +14,13 @@ export default async function BoardPage({
   if (!project) notFound();
 
   return (
-    <BoardView
-      projectId={project.id}
-      statuses={project.statuses}
-      tasks={tasks}
-    />
+    <>
+      <RegistrarVisao evento="visao.quadro" />
+      <BoardView
+        projectId={project.id}
+        statuses={project.statuses}
+        tasks={tasks}
+      />
+    </>
   );
 }
