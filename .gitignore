@@ -42,3 +42,9 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Chave da API da App Store Connect: é o segredo que assina em nome da conta
+# de desenvolvedor. Depois de guardada no chaveiro pelo notarytool, o arquivo
+# não precisa mais existir no disco.
+*.p8
+AuthKey_*

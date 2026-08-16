@@ -2,7 +2,8 @@ appId: app.beni.desktop
 productName: Beni
 copyright: Beni
 
-afterPack: build/after-pack.js
+# a notarização acontece depois da assinatura, com perfil do chaveiro
+afterSign: build/after-sign.js
 
 directories:
   buildResources: build
@@ -19,17 +20,30 @@ mac:
     - target: dmg
       arch: [universal]
   darkModeSupport: true
-  # Sem conta de desenvolvedor não há notarização. A assinatura ad-hoc, que é
-  # obrigatória em Apple Silicon, sai no build/after-pack.js — `identity: "-"`
-  # aqui não funciona (o electron-builder procura esse nome no chaveiro).
-  identity: null
+
+  # Assinatura de verdade, com o certificado Developer ID do chaveiro.
+  #
+  # Antes daqui o app era assinado ad-hoc, o que bastava para abrir no Mac que
+  # compilou e falhava para todo mundo que baixasse: download traz a marca de
+  # quarentena, e aí só notarização resolve.
+  # sem o prefixo "Developer ID Application:" — o electron-builder recusa e
+  # escolhe o certificado certo a partir do nome
+  identity: "Pietro Goncalves Medeiros (789WTWSGKU)"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # a notarização é feita no afterSign, com o perfil do chaveiro; a do
+  # electron-builder leria senha de variável de ambiente
+  notarize: false
+
   extendInfo:
     NSHumanReadableCopyright: Beni
     LSApplicationCategoryType: public.app-category.productivity
 
 dmg:
   title: Beni
-  # sem a versão no nome: o link de download do site aponta para
+  # sem a versão no nome: o link do site aponta para
   # releases/latest/download/Beni-mac.dmg, que só continua funcionando se o
   # arquivo tiver sempre o mesmo nome. A versão vive no Info.plist e na tag.
   artifactName: Beni-mac.dmg
