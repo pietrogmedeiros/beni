@@ -170,6 +170,20 @@ export const PROJECT_VIEWS = [
 ] as const;
 
 /**
+ * Aba de cobranças do projeto.
+ *
+ * Fica **fora** de `PROJECT_VIEWS` de propósito: aquela lista é o que todo
+ * mundo do projeto vê, e esta aba só aparece para quem administra. Deixá-la
+ * junto obrigaria a filtrar a lista em todo lugar que a consome, e um
+ * esquecimento passaria a mostrar o financeiro para o time inteiro.
+ */
+export const PROJECT_VIEW_COBRANCAS = {
+  slug: "cobrancas",
+  label: "Cobranças",
+  icon: "CircleDollarSign",
+} as const;
+
+/**
  * Onde mora o app de macOS.
  *
  * Aponta para o "latest" do GitHub em vez de uma versão fixa: assim publicar

@@ -92,6 +92,27 @@ enum DependencyType {
   START_TO_FINISH
 }
 
+/// Como o dinheiro chega. Só três formas, porque só existem três de verdade:
+/// um valor fechado dividido, uma mensalidade que se repete, ou um pagamento
+/// único.
+enum CobrancaTipo {
+  PARCELADO
+  MENSAL
+  AVULSO
+}
+
+/// Situação de uma parcela.
+///
+/// Não existe ATRASADO aqui de propósito: atraso é `PENDENTE` com vencimento
+/// no passado, e isso se calcula na hora de ler. Guardar como estado exigiria
+/// alguém virando a chave todo dia à meia-noite — mais uma rotina para falhar
+/// e uma tabela que mente quando ela falha.
+enum ParcelaStatus {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -101,14 +122,14 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships   Membership[]
-  assignedTasks Task[]       @relation("TaskAssignee")
-  reportedTasks Task[]       @relation("TaskReporter")
-  comments      Comment[]
-  activities    Activity[]
-  approvals     Approval[]     @relation("ApprovalRequester")
-  attachments   Attachment[]   @relation("AttachmentUploader")
-  notes         Note[]
+  memberships       Membership[]
+  assignedTasks     Task[]             @relation("TaskAssignee")
+  reportedTasks     Task[]             @relation("TaskReporter")
+  comments          Comment[]
+  activities        Activity[]
+  approvals         Approval[]         @relation("ApprovalRequester")
+  attachments       Attachment[]       @relation("AttachmentUploader")
+  notes             Note[]
   notificationsRead NotificationRead[]
   emailsSent        EmailLog[]
 
@@ -123,25 +144,30 @@ model User {
   /// Mascote escolhido como avatar (nome da cor). Nulo = foto, se houver, ou
   /// as iniciais. Foto e mascote são excludentes de propósito: dois avatares
   /// guardados e só um valendo vira estado escondido.
-  avatarMascot    String?
-  avatarFoto      Avatar?
+  avatarMascot String?
+  avatarFoto   Avatar?
   /// Muda a cada redefinição de senha e derruba as sessões antigas. Sem isto,
   /// trocar a senha não expulsa quem já estava dentro — que é justamente o
   /// motivo de alguém trocar a senha às pressas.
-  sessionEpoch    Int       @default(0)
-  authTokens      AuthToken[]
+  sessionEpoch Int         @default(0)
+  authTokens   AuthToken[]
 
-  feedbacks Feedback[] @relation("FeedbackAuthor")
+  feedbacks          Feedback[]      @relation("FeedbackAuthor")
   /// Quando o convite para dar feedback foi mostrado. Preenchido tanto ao
   /// enviar quanto ao dispensar: o convite é único e não volta.
   feedbackPromptedAt DateTime?
-  apiTokens     ApiToken[]
-  oauthCodes    OAuthCode[]
-  shares        ProjectShare[] @relation("ShareCreator")
-  channels      ChannelMember[]
-  messages      Message[]
-  reactions     Reaction[]
-  mentions      Mention[]
+  apiTokens          ApiToken[]
+  oauthCodes         OAuthCode[]
+  shares             ProjectShare[]  @relation("ShareCreator")
+  channels           ChannelMember[]
+  messages           Message[]
+  reactions          Reaction[]
+  mentions           Mention[]
+
+  /// Carteira de cobranças. É por dono, não por workspace: o que se cobra de
+  /// um cliente não é assunto do time que trabalha no projeto dele.
+  clientes  Cliente[]
+  cobrancas Cobranca[]
 }
 
 model Workspace {
@@ -156,8 +182,8 @@ model Workspace {
   members   Membership[]
   projects  Project[]
   apiTokens ApiToken[]
-  tags     Tag[]
-  channels Channel[]
+  tags      Tag[]
+  channels  Channel[]
 }
 
 model Membership {
@@ -189,7 +215,7 @@ model Project {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   statuses     TaskStatus[]
   sprints      Sprint[]
   tasks        Task[]
@@ -197,6 +223,7 @@ model Project {
   activities   Activity[]
   repositories GithubRepo[]
   shares       ProjectShare[]
+  cobrancas    Cobranca[]
 
   @@unique([workspaceId, key])
 }
@@ -256,16 +283,16 @@ model Task {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  status     TaskStatus   @relation(fields: [statusId], references: [id])
-  sprint     Sprint?      @relation(fields: [sprintId], references: [id], onDelete: SetNull)
-  parent     Task?        @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
-  subtasks   Task[]       @relation("Subtasks")
-  assignee   User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  reporter   User?        @relation("TaskReporter", fields: [reporterId], references: [id], onDelete: SetNull)
-  tags       TaskTag[]
-  comments   Comment[]
-  activities Activity[]
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status      TaskStatus       @relation(fields: [statusId], references: [id])
+  sprint      Sprint?          @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  parent      Task?            @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks    Task[]           @relation("Subtasks")
+  assignee    User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  reporter    User?            @relation("TaskReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  tags        TaskTag[]
+  comments    Comment[]
+  activities  Activity[]
   blockedBy   Dependency[]     @relation("DependencyTask")
   blocking    Dependency[]     @relation("DependencyBlocker")
   approvals   Approval[]
@@ -328,12 +355,12 @@ model Message {
   editedAt  DateTime?
   createdAt DateTime  @default(now())
 
-  channel  Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent   Message?   @relation("Thread", fields: [parentId], references: [id], onDelete: Cascade)
-  replies  Message[]  @relation("Thread")
+  channel   Channel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Message?   @relation("Thread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Message[]  @relation("Thread")
   reactions Reaction[]
-  mentions Mention[]
+  mentions  Mention[]
 
   @@index([channelId, createdAt])
   @@index([parentId])
@@ -353,11 +380,11 @@ model Reaction {
 }
 
 model Mention {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   messageId String
   userId    String
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -632,9 +659,9 @@ model Approval {
 }
 
 model Comment {
-  id       String  @id @default(cuid())
-  taskId   String
-  authorId String?
+  id         String  @id @default(cuid())
+  taskId     String
+  authorId   String?
   /// Preenchidos quando o comentário vem de um link público (visitante sem conta)
   guestName  String?
   guestEmail String?
@@ -677,8 +704,8 @@ model Activity {
   createdAt DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  task    Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  task    Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([projectId, createdAt])
   @@index([taskId])
@@ -728,7 +755,6 @@ model Feedback {
   @@index([userId])
 }
 
-
 /// Token de uso único para recuperar senha e confirmar e-mail.
 ///
 /// Guarda só o hash, como as chaves de API: o valor completo viaja no e-mail
@@ -749,7 +775,6 @@ model AuthToken {
   @@index([expiresAt])
 }
 
-
 /// Foto de perfil.
 ///
 /// Tabela à parte, e não coluna em `User`, por um motivo prático: quase toda
@@ -763,7 +788,6 @@ model Avatar {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
 
 /// Um acontecimento de uso, para decidir o que vira plano pago com dado em vez
 /// de palpite.
@@ -790,4 +814,115 @@ model UsageEvent {
   @@index([workspaceId, createdAt])
   @@index([userId, createdAt])
   @@index([origem, createdAt])
+}
+
+/// ---------------------------------------------------------------------------
+/// Cobranças
+///
+/// Controle de quando cada cliente tem parcela ou mensalidade a vencer. É uma
+/// área **privada do dono**, fora do workspace: a carteira de um freelancer não
+/// pertence ao time que executa o projeto, e misturar as duas coisas faria
+/// qualquer convidado enxergar quanto se cobra de quem.
+///
+/// Todo valor é **inteiro em centavos**. `Decimal` do Prisma não atravessa a
+/// fronteira para componente de cliente sem serializar na mão, e ponto
+/// flutuante erra centavo em soma longa. Inteiro não tem nenhum dos dois
+/// problemas e a formatação vive num lugar só.
+/// ---------------------------------------------------------------------------
+
+model Cliente {
+  id         String   @id @default(cuid())
+  ownerId    String
+  nome       String
+  /// E-mail, telefone ou o que sirva para cobrar. Texto livre porque na
+  /// prática cada cliente responde por um canal diferente.
+  contato    String?
+  documento  String?
+  observacao String?
+  /// Arquivado em vez de apagado: cliente que sumiu ainda tem histórico de
+  /// pagamento, e esse histórico é a única memória de quem paga em dia.
+  arquivado  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner     User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cobrancas Cobranca[]
+
+  @@index([ownerId, arquivado])
+}
+
+model Cobranca {
+  id        String       @id @default(cuid())
+  ownerId   String
+  clienteId String
+  titulo    String
+  tipo      CobrancaTipo
+
+  /// A que projeto esta cobrança pertence. **Obrigatório**: cobrança vive
+  /// dentro da gestão de um projeto, não numa carteira solta.
+  projectId String
+
+  /// Valor de referência, em centavos. O que ele significa depende do tipo:
+  /// em `PARCELADO` é o **total** do contrato, em `MENSAL` é o valor **de cada
+  /// mês**, em `AVULSO` é o valor único. Fica aqui, e não só nas parcelas,
+  /// porque é dele que sai a geração — inclusive das mensalidades futuras, que
+  /// ainda não existem como linha.
+  valorCentavos Int
+
+  /// Quantas parcelas — só em `PARCELADO`. Mensalidade não tem fim previsto.
+  parcelasTotal Int?
+
+  /// Vencimento da primeira parcela. Em `AVULSO` é o vencimento, ponto.
+  primeiroVencimento DateTime
+
+  /// Dia do mês do vencimento — só faz sentido em `MENSAL`.
+  diaVencimento Int?
+  /// Quando a mensalidade parou. Nulo = ainda corrente. Encerrar não apaga as
+  /// parcelas passadas, só para de gerar as próximas.
+  encerradaEm   DateTime?
+
+  observacao String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  cliente  Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  /// `Restrict`, não `Cascade`: excluir um projeto **não** pode levar junto o
+  /// histórico de quem pagou o quê. O banco recusa, e a ação de excluir
+  /// projeto explica o motivo antes de chegar aqui.
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  parcelas Parcela[]
+
+  @@index([ownerId])
+  @@index([projectId])
+  @@index([clienteId])
+}
+
+model Parcela {
+  id         String @id @default(cuid())
+  cobrancaId String
+  /// 1, 2, 3… Em mensalidade continua contando indefinidamente.
+  numero     Int
+
+  /// Só a data importa; a hora é sempre meia-noite UTC. Ver `lib/cobrancas.ts`:
+  /// vencimento com fuso é a origem clássica de "venceu ontem" na virada do dia.
+  vencimento    DateTime
+  valorCentavos Int
+  status        ParcelaStatus @default(PENDENTE)
+
+  /// Quando entrou de fato, e quanto entrou. O valor pago fica separado do
+  /// combinado porque desconto e juros existem, e sobrescrever o combinado
+  /// apagaria a diferença justamente quando ela interessa.
+  pagoEm            DateTime?
+  valorPagoCentavos Int?
+
+  observacao String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  cobranca Cobranca @relation(fields: [cobrancaId], references: [id], onDelete: Cascade)
+
+  /// Impede parcela duplicada quando a geração da mensalidade roda duas vezes.
+  @@unique([cobrancaId, numero])
+  @@index([status, vencimento])
 }

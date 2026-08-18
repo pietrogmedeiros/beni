@@ -37,7 +37,7 @@ import { DynamicIcon } from "@/components/dynamic-icon";
 import { UserMenu } from "@/components/app-shell/user-menu";
 import { sectionForPath } from "@/components/app-shell/icon-rail";
 import { listChannels, type ChannelSummary } from "@/server/actions/chat";
-import { PROJECT_VIEWS } from "@/lib/constants";
+import { PROJECT_VIEWS, PROJECT_VIEW_COBRANCAS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "@/lib/chat-stream";
 import type { UserDTO } from "@/server/queries";
@@ -233,6 +233,7 @@ export function NavPanel({
               pathname={pathname}
               onNavigate={onNavigate}
               onNewTask={onNewTask}
+              mostrarCobrancas={podeTriar}
             />
           ))
         )}
@@ -354,11 +355,14 @@ function ProjectNavItem({
   pathname,
   onNavigate,
   onNewTask,
+  mostrarCobrancas,
 }: {
   project: ProjectItem;
   pathname: string;
   onNavigate?: () => void;
   onNewTask: (defaults?: { projectId?: string }) => void;
+  /** Mesma regra da aba no cabeçalho: só quem administra enxerga. */
+  mostrarCobrancas?: boolean;
 }) {
   const isActive = pathname.startsWith(`/p/${project.id}`);
   const [open, setOpen] = useState(isActive);
@@ -432,7 +436,10 @@ function ProjectNavItem({
       </div>
 
       <CollapsibleContent className="ml-[26px] mt-0.5 space-y-px border-l pl-2">
-        {PROJECT_VIEWS.map((view) => {
+        {[
+          ...PROJECT_VIEWS,
+          ...(mostrarCobrancas ? [PROJECT_VIEW_COBRANCAS] : []),
+        ].map((view) => {
           const href = `/p/${project.id}/${view.slug}`;
           const active = pathname === href;
           return (

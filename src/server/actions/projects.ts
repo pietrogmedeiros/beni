@@ -123,6 +123,18 @@ export async function updateProject(
 
 export async function deleteProject(projectId: string) {
   await assertProjectAccess(projectId);
+
+  // Cobrança tem `onDelete: Restrict`, então o banco recusaria de qualquer
+  // forma — mas recusaria com um erro de chave estrangeira, que na tela vira
+  // "algo deu errado". Vale conferir antes só para poder explicar: apagar um
+  // projeto não pode levar junto o histórico de quem pagou o quê.
+  const cobrancas = await db.cobranca.count({ where: { projectId } });
+  if (cobrancas > 0) {
+    throw new Error(
+      `Este projeto tem ${cobrancas} cobrança${cobrancas > 1 ? "s" : ""} registrada${cobrancas > 1 ? "s" : ""}. Exclua ou mova as cobranças antes de apagar o projeto.`,
+    );
+  }
+
   await db.project.delete({ where: { id: projectId } });
   revalidatePath("/", "layout");
 }

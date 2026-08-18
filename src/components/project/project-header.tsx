@@ -26,13 +26,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { useApp } from "@/components/app-shell/app-context";
-import { PROJECT_VIEWS } from "@/lib/constants";
+import { PROJECT_VIEWS, PROJECT_VIEW_COBRANCAS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { deleteProject } from "@/server/actions/projects";
 import type { SprintDTO, StatusDTO } from "@/server/queries";
 
 export function ProjectHeader({
   project,
+  mostrarCobrancas,
 }: {
   project: {
     id: string;
@@ -44,6 +45,8 @@ export function ProjectHeader({
     statuses: StatusDTO[];
     sprints: SprintDTO[];
   };
+  /** Quem administra ganha a aba de cobranças; para o resto ela não existe. */
+  mostrarCobrancas?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -142,7 +145,10 @@ export function ProjectHeader({
       </div>
 
       <nav className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
-        {PROJECT_VIEWS.map((view) => {
+        {[
+          ...PROJECT_VIEWS,
+          ...(mostrarCobrancas ? [PROJECT_VIEW_COBRANCAS] : []),
+        ].map((view) => {
           const href = `/p/${project.id}/${view.slug}`;
           const active = pathname === href;
           return (
