@@ -143,6 +143,8 @@ const cobranca = z
     tipo: z.enum(["PARCELADO", "MENSAL", "AVULSO"]),
     valorCentavos: z.number().int().positive("O valor precisa ser maior que zero"),
     parcelasTotal: z.number().int().min(1).max(360).nullable().optional(),
+    /// nulo = de mês em mês; ver `Cobranca.intervaloDias`
+    intervaloDias: z.number().int().min(1).max(365).nullable().optional(),
     primeiroVencimento: dataDoFormulario,
     diaVencimento: z.number().int().min(1).max(31).nullable().optional(),
     projectId: z.string().min(1, "Cobrança precisa de um projeto"),
@@ -178,6 +180,7 @@ export async function criarCobranca(
       tipo: d.tipo,
       valorCentavos: d.valorCentavos,
       parcelasTotal: d.tipo === "PARCELADO" ? (d.parcelasTotal ?? null) : null,
+      intervaloDias: d.tipo === "PARCELADO" ? (d.intervaloDias ?? null) : null,
       primeiroVencimento: d.primeiroVencimento,
       diaVencimento:
         d.tipo === "MENSAL"

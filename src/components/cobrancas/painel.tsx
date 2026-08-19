@@ -42,7 +42,12 @@ import {
   excluirCobranca,
   reabrirParcela,
 } from "@/server/actions/cobrancas";
-import { DialogoCliente, DialogoCobranca, DialogoBaixa } from "./dialogos";
+import {
+  DialogoAjuste,
+  DialogoBaixa,
+  DialogoCliente,
+  DialogoCobranca,
+} from "./dialogos";
 
 /**
  * Cobranças de um projeto.
@@ -86,6 +91,7 @@ export function CobrancasPainel({
   const [novoCliente, setNovoCliente] = useState<{ id?: string } | null>(null);
   const [novaCobranca, setNovaCobranca] = useState(false);
   const [baixando, setBaixando] = useState<ParcelaNaLista | null>(null);
+  const [ajustando, setAjustando] = useState<ParcelaNaLista | null>(null);
 
   const clientesAtivos = useMemo(
     () => dados.clientes.filter((c) => !c.arquivado),
@@ -227,6 +233,7 @@ export function CobrancasPainel({
               dados={dados}
               pendente={pendente}
               aoReceber={setBaixando}
+              aoAjustar={setAjustando}
               aoAgir={agir}
               semClientes={dados.clientes.length === 0}
               aoCriarCliente={() => setNovoCliente({})}
@@ -262,6 +269,13 @@ export function CobrancasPainel({
           onOpenChange={setNovaCobranca}
           clientes={clientesAtivos}
           projectId={dados.projectId}
+        />
+      )}
+      {ajustando && (
+        <DialogoAjuste
+          open
+          onOpenChange={(v) => !v && setAjustando(null)}
+          parcela={ajustando}
         />
       )}
       {baixando && (
@@ -329,6 +343,7 @@ function ListaParcelas({
   dados,
   pendente,
   aoReceber,
+  aoAjustar,
   aoAgir,
   semClientes,
   aoCriarCliente,
@@ -336,6 +351,7 @@ function ListaParcelas({
   dados: Painel;
   pendente: boolean;
   aoReceber: (p: ParcelaNaLista) => void;
+  aoAjustar: (p: ParcelaNaLista) => void;
   aoAgir: (p: Promise<{ ok: boolean; erro?: string }>, s: string) => void;
   semClientes: boolean;
   aoCriarCliente: () => void;
@@ -451,6 +467,9 @@ function ListaParcelas({
                 }
               />
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => aoAjustar(p)}>
+                  Ajustar data e valor
+                </DropdownMenuItem>
                 {p.status === "PENDENTE" && (
                   <DropdownMenuItem
                     onClick={() =>

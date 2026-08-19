@@ -120,6 +120,11 @@ export function somarMeses(base: Date, meses: number, diaDesejado?: number) {
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
+/** Soma dias corridos. Sem fuso no meio: as datas já são meia-noite UTC. */
+export function somarDias(base: Date, dias: number) {
+  return new Date(base.getTime() + dias * DIA_MS);
+}
+
 /** Dias entre duas datas já normalizadas. Negativo = a primeira ficou para trás. */
 export function diasEntre(de: Date, ate: Date) {
   return Math.round((ate.getTime() - de.getTime()) / DIA_MS);
@@ -187,6 +192,8 @@ export type PlanoEntrada = {
   parcelasTotal: number | null;
   primeiroVencimento: Date | string;
   diaVencimento: number | null;
+  /** Nulo = de mês em mês. Ver `Cobranca.intervaloDias` no schema. */
+  intervaloDias?: number | null;
 };
 
 export type ParcelaPlanejada = {
@@ -197,6 +204,20 @@ export type ParcelaPlanejada = {
 
 /** Quantos meses de mensalidade manter criados à frente. */
 export const HORIZONTE_MENSAL = 12;
+
+/**
+ * Cadências prontas para o formulário.
+ *
+ * `null` é mês de calendário, não 30 dias — a diferença aparece já em
+ * fevereiro, e é o combinado mais comum.
+ */
+export const CADENCIAS: { valor: string; dias: number | null; rotulo: string }[] = [
+  { valor: "MES", dias: null, rotulo: "Mensal" },
+  { valor: "QUINZENAL", dias: 15, rotulo: "A cada 15 dias" },
+  { valor: "SEMANAL", dias: 7, rotulo: "Semanal" },
+  { valor: "QUINZENAL_14", dias: 14, rotulo: "A cada 14 dias" },
+  { valor: "PERSONALIZADO", dias: 0, rotulo: "Personalizado…" },
+];
 
 /**
  * Quais parcelas **deveriam** existir para uma cobrança.
@@ -228,9 +249,15 @@ export function planoDeParcelas(
     const base = Math.floor(cobranca.valorCentavos / n);
     const resto = cobranca.valorCentavos - base * n;
     const dia = primeiro.getUTCDate();
+    const passo = cobranca.intervaloDias ?? null;
     return Array.from({ length: n }, (_, i) => ({
       numero: i + 1,
-      vencimento: somarMeses(primeiro, i, dia),
+      // com intervalo em dias a data anda em cima da anterior; sem ele, o
+      // vencimento é sempre o mesmo dia do mês, encurtando em fevereiro
+      vencimento:
+        passo && passo > 0
+          ? somarDias(primeiro, passo * i)
+          : somarMeses(primeiro, i, dia),
       valorCentavos: base + (i === 0 ? resto : 0),
     }));
   }

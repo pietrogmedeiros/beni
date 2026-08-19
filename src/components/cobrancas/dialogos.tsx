@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  CADENCIAS,
   ROTULO_TIPO,
   formatarValor,
   lerValor,
@@ -31,6 +32,7 @@ import {
   valorParaCampo,
 } from "@/lib/cobrancas";
 import {
+  ajustarParcela,
   criarCobranca,
   marcarPago,
   salvarCliente,
@@ -156,11 +158,18 @@ export function DialogoCobranca({
   const [tipo, setTipo] = useState<"PARCELADO" | "MENSAL" | "AVULSO">("PARCELADO");
   const [valor, setValor] = useState("");
   const [parcelas, setParcelas] = useState("3");
+  const [cadencia, setCadencia] = useState("MES");
+  const [diasCustom, setDiasCustom] = useState("15");
   const [vencimento, setVencimento] = useState(() => proximoDia30());
   const [observacao, setObservacao] = useState("");
 
   const centavos = lerValor(valor);
   const qtd = Number(parcelas) || 0;
+
+  const intervaloDias =
+    cadencia === "PERSONALIZADO"
+      ? Number(diasCustom) || null
+      : (CADENCIAS.find((c) => c.valor === cadencia)?.dias ?? null);
 
   /**
    * Prévia do que vai ser criado.
@@ -178,11 +187,12 @@ export function DialogoCobranca({
         parcelasTotal: tipo === "PARCELADO" ? qtd : null,
         primeiroVencimento: `${vencimento}T00:00:00Z`,
         diaVencimento: null,
+        intervaloDias,
       }).slice(0, 4);
     } catch {
       return [];
     }
-  }, [tipo, centavos, qtd, vencimento]);
+  }, [tipo, centavos, qtd, vencimento, intervaloDias]);
 
   const totalParcelado =
     tipo === "PARCELADO" && centavos ? centavos : null;
@@ -199,6 +209,7 @@ export function DialogoCobranca({
         tipo,
         valorCentavos: centavos,
         parcelasTotal: tipo === "PARCELADO" ? qtd : null,
+        intervaloDias: tipo === "PARCELADO" ? intervaloDias : null,
         primeiroVencimento: vencimento,
         diaVencimento: null,
         projectId,
@@ -313,6 +324,43 @@ export function DialogoCobranca({
             </Campo>
           </div>
 
+
+          {tipo === "PARCELADO" && (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Campo
+                rotulo="A cada"
+                dica="mês respeita o dia combinado; dias contam corrido"
+                className="sm:col-span-2"
+              >
+                <Select
+                  value={cadencia}
+                  onValueChange={(v) => v && setCadencia(v)}
+                  items={Object.fromEntries(CADENCIAS.map((c) => [c.valor, c.rotulo]))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CADENCIAS.map((c) => (
+                      <SelectItem key={c.valor} value={c.valor}>
+                        {c.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+
+              {cadencia === "PERSONALIZADO" && (
+                <Campo rotulo="Dias">
+                  <Input
+                    inputMode="numeric"
+                    value={diasCustom}
+                    onChange={(e) => setDiasCustom(e.target.value.replace(/\D/g, ""))}
+                  />
+                </Campo>
+              )}
+            </div>
+          )}
 
           <Campo rotulo="Observação">
             <Textarea
@@ -488,4 +536,117 @@ function proximoDia30() {
   const d = new Date();
   d.setDate(d.getDate() + 30);
   return d.toISOString().slice(0, 10);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Ajuste de uma parcela                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Muda data, valor e observação de **uma** parcela.
+ *
+ * É a saída para o que nenhuma cadência resolve: o cliente que pediu para
+ * empurrar a terceira parcela, o desconto combinado só naquela, a entrada
+ * maior. Sem isto, qualquer combinado fora do padrão obrigaria a apagar a
+ * cobrança e refazer — e refazer perde o que já foi pago.
+ */
+export function DialogoAjuste({
+  open,
+  onOpenChange,
+  parcela,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  parcela: ParcelaNaLista;
+}) {
+  const router = useRouter();
+  const [salvando, start] = useTransition();
+  const [vencimento, setVencimento] = useState(parcela.vencimento);
+  const [valor, setValor] = useState(valorParaCampo(parcela.valorCentavos));
+  const [observacao, setObservacao] = useState(parcela.observacao ?? "");
+
+  useEffect(() => {
+    // sincroniza com a parcela que abriu o diálogo
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVencimento(parcela.vencimento);
+    setValor(valorParaCampo(parcela.valorCentavos));
+    setObservacao(parcela.observacao ?? "");
+  }, [parcela.id, parcela.vencimento, parcela.valorCentavos, parcela.observacao]);
+
+  const centavos = lerValor(valor);
+
+  function salvar() {
+    if (!centavos || centavos <= 0) {
+      toast.error("Informe o valor");
+      return;
+    }
+    start(async () => {
+      const r = await ajustarParcela({
+        parcelaId: parcela.id,
+        vencimento,
+        valorCentavos: centavos,
+        observacao,
+      });
+      if (r.ok) {
+        toast.success("Parcela ajustada");
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        toast.error(r.erro);
+      }
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>
+            Ajustar parcela {parcela.numero}
+            {parcela.parcelasTotal ? `/${parcela.parcelasTotal}` : ""}
+          </DialogTitle>
+          <DialogDescription>
+            {parcela.clienteNome} · {parcela.cobrancaTitulo}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <Campo rotulo="Vencimento">
+            <Input
+              type="date"
+              value={vencimento}
+              onChange={(e) => setVencimento(e.target.value)}
+            />
+          </Campo>
+          <Campo
+            rotulo="Valor"
+            dica="mexe só nesta parcela; as outras ficam como estão"
+          >
+            <Input
+              inputMode="decimal"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+            />
+          </Campo>
+          <Campo rotulo="Observação">
+            <Input
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Adiada a pedido do cliente…"
+            />
+          </Campo>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={salvando || !centavos}>
+            {salvando && <Loader2 className="size-3.5 animate-spin" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }

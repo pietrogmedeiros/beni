@@ -872,6 +872,14 @@ model Cobranca {
   /// Quantas parcelas — só em `PARCELADO`. Mensalidade não tem fim previsto.
   parcelasTotal Int?
 
+  /// De quantos em quantos dias as parcelas vencem, em `PARCELADO`.
+  ///
+  /// Nulo = **de mês em mês**, que é o padrão e não é a mesma coisa que 30
+  /// dias: mês respeita o dia combinado (todo dia 18) e encurta sozinho em
+  /// fevereiro. Contagem em dias é para quando o combinado é "de 15 em 15",
+  /// em que o dia do mês anda de propósito.
+  intervaloDias Int?
+
   /// Vencimento da primeira parcela. Em `AVULSO` é o vencimento, ponto.
   primeiroVencimento DateTime
 
