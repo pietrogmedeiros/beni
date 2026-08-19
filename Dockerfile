@@ -7,11 +7,21 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # ————— dependências completas (para o build) —————
+#
+# Só `package.json` e o lock entram aqui. O `prisma/` ficava nesta etapa porque
+# o `postinstall` do projeto roda `prisma generate` e ele precisa do schema — e
+# o preço disso era alto: **qualquer** mudança de schema ou migration nova
+# invalidava a camada e reinstalava tudo. Medido, era 17,5s de um build
+# incremental de 34s, metade do tempo, gasto para gerar um client que a etapa
+# seguinte gera de novo (`npm run build` é `prisma generate && next build`).
+#
+# `--ignore-scripts` é seguro **aqui** porque estas dependências só servem para
+# compilar. Os quatro pacotes que dependem de script de instalação
+# (@prisma/engines, esbuild, prisma, unrs-resolver) chegam ao runtime pela
+# etapa `tools`, que instala normalmente, com scripts.
 FROM base AS deps
 COPY package.json package-lock.json* ./
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-RUN --mount=type=cache,target=/root/.npm npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
 
 # ————— build —————
 FROM base AS builder

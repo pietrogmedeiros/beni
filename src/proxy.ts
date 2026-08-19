@@ -15,6 +15,9 @@ const ACCOUNT_PATHS = ["/esqueci", "/redefinir", "/confirmar"];
 
 /** Rotas abertas: acessíveis sem conta (link de aprovação do stakeholder). */
 const OPEN_PATHS = [
+  // a página de apresentação: quem chega nela ainda não tem conta, que é
+  // justamente o ponto
+  "/pagina",
   "/aprovar",
   "/compartilhar",
   "/nota",
