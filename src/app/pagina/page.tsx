@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import {
   ArrowRight,
   Apple,
-  Bell,
   CalendarDays,
   Check,
   GanttChartSquare,
@@ -14,12 +13,12 @@ import {
   List,
   MessageSquare,
   NotebookPen,
-  Paperclip,
+  Plus,
   PieChart,
   Search,
   Sparkles,
-  Terminal,
   Users,
+  X,
 } from "lucide-react";
 import { BeniLogo, BeniMascote } from "@/components/logo";
 import { DOWNLOAD_MAC } from "@/lib/constants";
@@ -106,6 +105,13 @@ const ETAPAS = [
   },
 ];
 
+const PASSOS = [
+  "Pedido criado na tarefa",
+  "Cliente abriu o link",
+  "Leu o que precisa validar",
+  "Aprovou",
+];
+
 const FERRAMENTAS_MCP = [
   "beni_meu_dia",
   "beni_tarefas",
@@ -117,14 +123,6 @@ const FERRAMENTAS_MCP = [
   "beni_criar_tarefas_em_massa",
 ];
 
-const EXTRAS = [
-  { icon: Search, nome: "Busca instantânea", nota: "Tarefa, projeto ou anotação em ⌘K." },
-  { icon: GitBranch, nome: "GitHub", nota: "Liga commit e pull request à tarefa." },
-  { icon: Bell, nome: "Avisos por e-mail", nota: "Ao ser atribuído e no resumo do dia." },
-  { icon: Paperclip, nome: "Anexos", nota: "Arquivo e print colados na tarefa." },
-  { icon: Users, nome: "Sprints e responsáveis", nota: "Quem faz o quê, e até quando." },
-  { icon: Terminal, nome: "API com token", nota: "Para automatizar o que se repete." },
-];
 
 export default function PaginaDoBeni() {
   return (
@@ -133,12 +131,15 @@ export default function PaginaDoBeni() {
       <main className="flex-1">
         <Hero />
         <Retrato />
+        <DoisModos />
+        <Problema />
         <Visoes />
-        <Aprovacao />
+        <FluxoDeAprovacao />
         <ConectorDoClaude />
         <EscritaEConversa />
+        <Fragmentos />
         <AppDeMac />
-        <TambemTem />
+        <Perguntas />
         <ChamadaFinal />
       </main>
       <Rodape />
@@ -199,10 +200,10 @@ function Hero() {
           </h1>
 
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
-            O Beni guarda as tarefas, as decisões e as conversas do projeto no
-            mesmo lugar. Cada projeto tem sete jeitos de ser olhado, e quando
-            chega a hora de validar, o cliente aprova por um link, sem criar
-            conta e sem ver a sua cozinha.
+            Serve para o projeto que é só do time e para o que tem cliente
+            esperando aprovação. Tarefas, decisões e conversas no mesmo lugar,
+            sete jeitos de olhar a mesma tarefa, e quando chega a validação o
+            cliente aprova por um link, sem criar conta e sem ver a sua cozinha.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -418,79 +419,202 @@ function Visoes() {
   );
 }
 
-function Aprovacao() {
+/**
+ * Para dentro e para fora.
+ *
+ * Vem logo depois da primeira tela porque a chamada fala em aprovação do
+ * cliente, e sozinha ela estreita: quem toca produto interno leria "isto é
+ * para agência" e sairia. A distinção real é pequena, e é essa a mensagem: o
+ * projeto é o mesmo, o que muda é mandar ou não um link para fora.
+ */
+function DoisModos() {
   return (
-    <Secao className="bg-muted/30">
-      <div className="grid items-center gap-10 lg:grid-cols-2">
-        <div>
-          <Titulo
-            sobre="Aprovação"
-            descricao="Você manda um link. Ele abre, lê o que precisa validar, aprova ou pede ajuste, e nada disso exige conta, senha ou convite."
-          >
-            O cliente aprova sem entrar no seu time
-          </Titulo>
+    <Secao>
+      <div className="revelar mx-auto max-w-2xl text-center">
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          Serve para o time e serve para o cliente
+        </h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+          É o mesmo projeto nos dois casos. O que muda é você mandar um link
+          para fora ou não.
+        </p>
+      </div>
 
-          <ul className="mt-7 space-y-3.5">
+      <div className="cascata mt-10 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border bg-card p-6">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary-strong">
+            <Users className="size-5" />
+          </span>
+          <p className="mt-4 font-semibold">Projeto interno</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Roadmap de produto, sprint da engenharia, plano de marketing, mudança
+            de processo. Só quem é do workspace entra, e ninguém precisa saber
+            que existe cliente nenhum.
+          </p>
+          <ul className="mt-4 space-y-2">
             {[
-              "Só o nome da tarefa e o que ele precisa validar. A descrição interna não viaja no link, porque combinado de equipe não é assunto de cliente.",
-              "A resposta volta para dentro da tarefa, com data e quem aprovou.",
-              "Serve também para o Gantt: um link de leitura para acompanhar o prazo.",
+              "Sprints, backlog e dependências entre tarefas",
+              "Conversas por canal e anotações no projeto",
+              "Painel com o andamento, sem montar relatório",
             ].map((t) => (
-              <li key={t} className="flex gap-3 text-sm leading-relaxed">
+              <li key={t} className="flex gap-2.5 text-sm text-muted-foreground">
                 <Check className="mt-0.5 size-4 shrink-0 text-primary-strong" />
-                <span className="text-muted-foreground">{t}</span>
+                {t}
               </li>
             ))}
           </ul>
         </div>
 
-        <MockAprovacao />
+        <div className="rounded-2xl border border-primary/40 bg-primary/10 p-6">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/25 text-primary-strong">
+            <Link2 className="size-5" />
+          </span>
+          <p className="mt-4 font-semibold">Projeto com cliente</p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Tudo do interno, mais o caminho para fora. O cliente participa do
+            que precisa participar, aprova o que precisa aprovar, e para por aí.
+          </p>
+          <ul className="mt-4 space-y-2">
+            {[
+              "Link de aprovação, sem conta e sem convite",
+              "Gantt compartilhado para acompanhar o prazo",
+              "A discussão interna continua interna",
+            ].map((t) => (
+              <li key={t} className="flex gap-2.5 text-sm text-muted-foreground">
+                <Check className="mt-0.5 size-4 shrink-0 text-primary-strong" />
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </Secao>
   );
 }
 
-/** Amostra do que o cliente vê. Desenhada em HTML, não é captura de tela. */
-function MockAprovacao() {
+/**
+ * A dor, antes do remédio.
+ *
+ * Vem logo depois da primeira tela do produto e antes dos recursos: quem chega
+ * numa página de ferramenta já usa alguma coisa, e só troca se reconhecer o
+ * próprio incômodo primeiro. Sem esta seção a página vira lista de recursos
+ * sem motivo.
+ */
+function Problema() {
   return (
-    <div>
-      <div className="rounded-2xl border bg-card p-5 shadow-sm">
-        <div className="flex items-center gap-2 border-b pb-3">
-          <BeniLogo className="origin-left scale-90" />
-          <span className="ml-auto rounded-md bg-amber-500/12 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
-            Aguardando você
-          </span>
-        </div>
-
-        <p className="mt-4 text-[11px] uppercase tracking-wider text-muted-foreground">
-          Tarefa
+    <Secao className="bg-muted/30">
+      <div className="revelar mx-auto max-w-3xl text-center">
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          Tocar projeto é mais difícil do que devia ser
+        </h2>
+        <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
+          Não é falta de ferramenta. É ferramenta demais, e o combinado
+          espalhado entre elas, tanto dentro do time quanto com quem está de
+          fora.
         </p>
-        <p className="mt-1 text-sm font-semibold">
-          Landing page, versão para revisão
-        </p>
-
-        <p className="mt-4 text-[11px] uppercase tracking-wider text-muted-foreground">
-          O que validar
-        </p>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-          Confere se o texto da dobra principal está como combinamos e se o
-          botão leva para o formulário certo.
-        </p>
-
-        <div className="mt-5 flex gap-2">
-          <span className="flex-1 rounded-lg bg-primary px-3 py-2 text-center text-xs font-semibold text-primary-foreground">
-            Aprovar
-          </span>
-          <span className="flex-1 rounded-lg border px-3 py-2 text-center text-xs font-semibold text-muted-foreground">
-            Pedir ajuste
-          </span>
-        </div>
       </div>
 
-      <p className="mt-3 text-center text-xs text-muted-foreground">
-        É isso que o cliente recebe. Nada além disso.
-      </p>
-    </div>
+      <div className="cascata mt-10 grid gap-3 sm:grid-cols-2">
+        {[
+          {
+            dor: "O quadro está numa ferramenta, a ata noutra, e a conversa no WhatsApp.",
+            jeito: "Tarefa, anotação e conversa no mesmo projeto.",
+          },
+          {
+            dor: "Para o cliente aprovar, alguém monta um PDF e manda por e-mail.",
+            jeito: "Um link. Ele abre, lê e aprova, sem conta.",
+          },
+          {
+            dor: "O cliente pede acesso e passa a ver discussão interna do time.",
+            jeito: "O link mostra só o que ele precisa validar.",
+          },
+          {
+            dor: "Na véspera da reunião alguém para tudo para montar relatório.",
+            jeito: "O painel do projeto já está pronto.",
+          },
+        ].map((i) => (
+          <div key={i.dor} className="rounded-2xl border bg-card p-5">
+            <p className="flex gap-2.5 text-sm leading-relaxed text-muted-foreground">
+              <X className="mt-0.5 size-4 shrink-0 text-muted-foreground/70" />
+              <span>{i.dor}</span>
+            </p>
+            <p className="mt-3 flex gap-2.5 text-sm font-medium leading-relaxed">
+              <Check className="mt-0.5 size-4 shrink-0 text-primary-strong" />
+              <span>{i.jeito}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+    </Secao>
+  );
+}
+
+/**
+ * O caminho da aprovação, em faixa cheia.
+ *
+ * É a única seção que sangra até as bordas e troca de fundo. Serve de
+ * respiro no meio da página e marca o que diferencia o Beni: o cliente entra
+ * no fluxo sem entrar no time. O painel escuro dentro do amarelo é proposital,
+ * o contraste faz o olho parar aqui.
+ */
+function FluxoDeAprovacao() {
+  return (
+    <section className="relative bg-primary text-primary-foreground">
+      {/*
+        As curvas de fundo precisam ser recortadas, mas o recorte **não** pode
+        ficar na seção: `overflow: hidden` cria um contêiner de rolagem, e a
+        linha do tempo do caminho passaria a medir contra ele, que nunca rola.
+        O efeito congelava no meio sem erro nenhum. Por isso o recorte vive
+        nesta camada, que é irmã do conteúdo e não ancestral dele.
+      */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-40 -top-56 size-[46rem] rounded-full border-[5rem] border-white/12" />
+        <div className="absolute -bottom-72 -right-32 size-[40rem] rounded-full border-[4rem] border-white/10" />
+      </div>
+
+      <div className="revelar relative mx-auto w-full max-w-6xl px-5 py-20 sm:py-24">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            Do pedido à aprovação, num caminho só
+          </h2>
+          <p className="mt-3 text-[15px] leading-relaxed opacity-80">
+            Você pede a validação dentro da tarefa. O cliente recebe um link,
+            responde, e a resposta volta para o mesmo lugar.
+          </p>
+        </div>
+
+        <div className="fluxo mx-auto mt-12 max-w-xl rounded-3xl bg-neutral-900 p-7 text-neutral-100 shadow-2xl sm:p-10">
+          <div className="mx-auto w-fit rounded-full border border-white/15 bg-white/5 px-4 py-2 font-mono text-[11px] text-neutral-400 sm:text-xs">
+            app.benicio.space/aprovar/k3f9…
+          </div>
+
+          <ol className="fluxo-lista relative mx-auto mt-8 max-w-xs">
+            {/* trilho: o cinza é o caminho todo, o âmbar é o quanto já andou */}
+            <span aria-hidden className="fluxo-trilho" />
+            <span aria-hidden className="fluxo-andado" />
+
+            {PASSOS.map((passo) => (
+              <li key={passo} className="passo">
+                <span className="passo-marca">
+                  <Check className="size-3" strokeWidth={3} />
+                </span>
+                <span className="passo-texto">{passo}</span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="fluxo-fim mx-auto mt-8 w-fit rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground">
+            Registrado na tarefa, com data e autor
+          </div>
+        </div>
+
+        <p className="mx-auto mt-8 max-w-lg text-center text-sm opacity-80">
+          A descrição interna não viaja no link. Combinado de equipe não é
+          assunto de cliente, e esconder na tela não bastaria: o texto iria
+          junto no conteúdo da página.
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -690,24 +814,185 @@ function AppDeMac() {
   );
 }
 
-function TambemTem() {
+/**
+ * O resto dos recursos, mostrando um pedaço de interface em vez de um ícone.
+ *
+ * Ícone com legenda diz o nome da funcionalidade; um pedaço da tela diz como
+ * ela é. Custa mais para escrever e vale a diferença, porque é o que separa
+ * "tem busca" de "a busca é assim".
+ */
+function Fragmentos() {
   return (
     <Secao className="bg-muted/30">
-      <Titulo sobre="E ainda">O resto que você espera de uma ferramenta séria</Titulo>
+      <div className="revelar">
+        <Titulo sobre="E ainda">O resto que você espera de uma ferramenta séria</Titulo>
+      </div>
 
-      <div className="cascata mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {EXTRAS.map((e) => (
-          <div key={e.nome} className="flex gap-3 rounded-2xl border bg-card p-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary-strong">
-              <e.icon className="size-4.5" />
-            </span>
-            <div>
-              <p className="text-sm font-semibold">{e.nome}</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                {e.nota}
-              </p>
+      <div className="cascata mt-10 grid gap-4 lg:grid-cols-2">
+        <CartaoFragmento
+          titulo="Busca instantânea"
+          nota="Tarefa, projeto ou anotação, em ⌘K, de qualquer tela."
+          destaque
+        >
+          <div className="rounded-xl border border-black/10 bg-white/70 p-2.5 dark:border-white/10 dark:bg-black/20">
+            <div className="flex items-center gap-2 border-b border-black/5 px-1 pb-2 text-xs text-muted-foreground dark:border-white/10">
+              <Search className="size-3.5" />
+              login
+              <span className="ml-auto rounded border px-1 font-mono text-[10px]">⌘K</span>
+            </div>
+            <div className="space-y-1 pt-2">
+              {[
+                ["WEB-8", "Implementar login com e-mail e senha"],
+                ["APP-3", "Login social no app"],
+                ["Nota", "Decisões do fluxo de entrada"],
+              ].map(([ref, nome]) => (
+                <p key={ref} className="flex gap-2 px-1 text-[11px]">
+                  <span className="font-mono text-muted-foreground">{ref}</span>
+                  <span className="truncate">{nome}</span>
+                </p>
+              ))}
             </div>
           </div>
+        </CartaoFragmento>
+
+        <CartaoFragmento
+          titulo="GitHub na tarefa"
+          nota="O commit e o pull request aparecem onde o trabalho foi combinado."
+        >
+          <div className="space-y-2">
+            {[
+              ["a3f91c2", "corrige validação do formulário"],
+              ["PR #218", "login com e-mail e senha"],
+            ].map(([ref, nome]) => (
+              <div
+                key={ref}
+                className="flex items-center gap-2.5 rounded-xl border bg-card px-3 py-2 text-[11px]"
+              >
+                <GitBranch className="size-3.5 shrink-0 text-primary-strong" />
+                <span className="font-mono text-muted-foreground">{ref}</span>
+                <span className="truncate">{nome}</span>
+              </div>
+            ))}
+          </div>
+        </CartaoFragmento>
+
+        <CartaoFragmento
+          titulo="Avisos por e-mail"
+          nota="Ao ser atribuído, quando pedem sua aprovação, e um resumo no começo do dia."
+        >
+          <div className="rounded-xl border bg-card p-3">
+            <p className="text-[11px] font-medium">Seu dia no Beni</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              3 tarefas vencem hoje, 1 esperando você
+            </p>
+            <div className="mt-2.5 space-y-1.5">
+              {["Corrigir estouro no mobile", "Aprovar landing page"].map((t) => (
+                <p key={t} className="flex items-center gap-2 text-[11px]">
+                  <span className="size-1.5 rounded-full bg-primary" />
+                  {t}
+                </p>
+              ))}
+            </div>
+          </div>
+        </CartaoFragmento>
+
+        <CartaoFragmento
+          titulo="API com chave por workspace"
+          nota="Para automatizar o que se repete, e é a mesma chave que o conector do Claude usa."
+        >
+          <div className="rounded-xl border bg-neutral-900 p-3 font-mono text-[10.5px] leading-relaxed text-neutral-300">
+            <p className="text-neutral-500">
+              curl -H &quot;Authorization: Bearer …&quot; \
+            </p>
+            <p className="pl-3">app.benicio.space/api/v1/tasks</p>
+            <p className="mt-2 text-primary">{"{ \"tarefas\": 12, \"vencendo\": 3 }"}</p>
+          </div>
+        </CartaoFragmento>
+      </div>
+    </Secao>
+  );
+}
+
+function CartaoFragmento({
+  titulo,
+  nota,
+  destaque = false,
+  children,
+}: {
+  titulo: string;
+  nota: string;
+  destaque?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col justify-between gap-5 rounded-2xl border p-5",
+        destaque ? "border-primary/40 bg-primary/10" : "bg-card",
+      )}
+    >
+      <div>{children}</div>
+      <div>
+        <p className="font-semibold">{titulo}</p>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{nota}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Perguntas e respostas.
+ *
+ * `details` e `summary` do próprio HTML: abre e fecha sem uma linha de script,
+ * funciona com teclado e é encontrado pela busca do navegador mesmo fechado.
+ */
+function Perguntas() {
+  const itens = [
+    {
+      p: "Preciso pagar para usar?",
+      r: "Não. O Beni está sendo construído e é de graça enquanto estiver. Quando houver plano pago, o que existe hoje continua funcionando para quem já usa.",
+    },
+    {
+      p: "O cliente precisa criar conta para aprovar?",
+      r: "Não. Ele recebe um link, abre, lê o que precisa validar e responde. Não pede senha, convite nem cadastro, e ele não entra no seu workspace.",
+    },
+    {
+      p: "O cliente vê as conversas internas do time?",
+      r: "Não. O link de aprovação leva o nome da tarefa e o que precisa ser validado. A descrição interna não é enviada, então nem no conteúdo da página ela aparece.",
+    },
+    {
+      p: "Dá para usar com o Claude?",
+      r: "Sim. O Beni é um servidor MCP: você cria uma chave em Configurações e adiciona o conector apontando para app.benicio.space/api/mcp. A partir daí dá para perguntar o que vence hoje, abrir tarefa e comentar por conversa.",
+    },
+    {
+      p: "Tem app para computador?",
+      r: "Para Mac, sim, assinado e reconhecido pela Apple, com Intel e Apple Silicon no mesmo arquivo. No Windows e no Linux o Beni roda no navegador.",
+    },
+    {
+      p: "Meus arquivos e dados ficam onde?",
+      r: "Num banco próprio do Beni, junto do projeto a que pertencem. Anexos ficam guardados no banco, e não numa pasta que some quando o servidor é atualizado.",
+    },
+  ];
+
+  return (
+    <Secao>
+      <div className="revelar mx-auto max-w-2xl text-center">
+        <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+          Perguntas e respostas
+        </h2>
+      </div>
+
+      <div className="cascata mx-auto mt-10 max-w-2xl space-y-2.5">
+        {itens.map((i) => (
+          <details key={i.p} className="pergunta group rounded-2xl border bg-card">
+            <summary className="flex cursor-pointer list-none items-center gap-4 px-5 py-4 text-sm font-medium">
+              {i.p}
+              <Plus className="seta ml-auto size-4 shrink-0 text-muted-foreground" />
+            </summary>
+            <p className="px-5 pb-5 text-sm leading-relaxed text-muted-foreground">
+              {i.r}
+            </p>
+          </details>
         ))}
       </div>
     </Secao>
@@ -763,6 +1048,14 @@ function Rodape() {
             App de Mac
           </a>
         </nav>
+      </div>
+
+      {/* a marca ocupando a largura toda no fim: fecha a leitura com o nome, e
+          é a última coisa que fica na cabeça de quem rolou até aqui */}
+      <div className="overflow-hidden px-5 pb-6" aria-hidden>
+        <p className="select-none text-center text-[19vw] font-semibold leading-[0.8] tracking-tighter text-primary/25">
+          Beni
+        </p>
       </div>
     </footer>
   );

@@ -298,3 +298,185 @@
     border-color: var(--color-primary);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Perguntas e respostas                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * O acordeão é `details` e `summary` do próprio HTML: abre sem script, é
+ * navegável por teclado e a busca do navegador acha o texto mesmo fechado.
+ * O que se faz aqui é só tirar a setinha nativa e girar a nossa.
+ */
+.pergunta > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pergunta .seta {
+  transition: transform 0.25s ease;
+}
+
+.pergunta[open] .seta {
+  transform: rotate(45deg);
+}
+
+.pergunta[open] {
+  border-color: color-mix(in oklab, var(--color-primary) 45%, transparent);
+  background: color-mix(in oklab, var(--color-primary) 8%, var(--color-card));
+}
+
+/* -------------------------------------------------------------------------- */
+/* O caminho da aprovação                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Aqui o objetivo é mostrar um caminho **acontecendo**, e não uma lista com
+ * tudo já marcado: quatro itens riscados de uma vez contam que acabou, não
+ * como funciona. Então cada passo acende conforme a pessoa rola, e o trilho
+ * âmbar cresce atrás deles.
+ *
+ * Como sempre nesta página, o estado escrito fora do `@supports` é o **final**:
+ * sem animação de rolagem, ou com movimento reduzido, o caminho aparece
+ * inteiro e completo. É o que garante que a seção nunca fique pela metade.
+ */
+
+.fluxo-lista {
+  padding-left: 2.25rem;
+}
+
+.passo {
+  position: relative;
+  padding-bottom: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.passo:last-child {
+  padding-bottom: 0;
+}
+
+.passo-marca {
+  position: absolute;
+  left: -2.25rem;
+  top: -0.0625rem;
+  display: flex;
+  height: 1.375rem;
+  width: 1.375rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #171717;
+}
+
+/* trilho de fundo e trilho percorrido, ambos atrás das marcas */
+.fluxo-trilho,
+.fluxo-andado {
+  position: absolute;
+  left: -1.5625rem;
+  top: 0.75rem;
+  bottom: 1.25rem;
+  width: 2px;
+  border-radius: 999px;
+}
+
+.fluxo-trilho {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.fluxo-andado {
+  background: var(--color-primary);
+  transform-origin: top;
+}
+
+@keyframes beni-passo-marca {
+  from {
+    border-color: rgb(255 255 255 / 0.22);
+    background: transparent;
+    color: transparent;
+  }
+  to {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: #171717;
+  }
+}
+
+@keyframes beni-passo-texto {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes beni-andado {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes beni-fluxo-fim {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .fluxo {
+      view-timeline-name: --caminho;
+      view-timeline-axis: block;
+    }
+
+    .fluxo-andado {
+      animation: beni-andado linear both;
+      animation-timeline: --caminho;
+      animation-range: cover 32% cover 66%;
+    }
+
+    .passo-marca {
+      animation: beni-passo-marca linear both;
+      animation-timeline: --caminho;
+    }
+    .passo-texto {
+      display: inline-block;
+      animation: beni-passo-texto linear both;
+      animation-timeline: --caminho;
+    }
+
+    /* um passo a cada 9% do percurso: rápido o bastante para não travar a
+       leitura, lento o bastante para a sequência ser percebida como sequência */
+    .passo:nth-child(3) .passo-marca,
+    .passo:nth-child(3) .passo-texto {
+      animation-range: cover 32% cover 38%;
+    }
+    .passo:nth-child(4) .passo-marca,
+    .passo:nth-child(4) .passo-texto {
+      animation-range: cover 41% cover 47%;
+    }
+    .passo:nth-child(5) .passo-marca,
+    .passo:nth-child(5) .passo-texto {
+      animation-range: cover 50% cover 56%;
+    }
+    .passo:nth-child(6) .passo-marca,
+    .passo:nth-child(6) .passo-texto {
+      animation-range: cover 59% cover 65%;
+    }
+
+    .fluxo-fim {
+      animation: beni-fluxo-fim linear both;
+      animation-timeline: --caminho;
+      animation-range: cover 64% cover 72%;
+    }
+  }
+}
