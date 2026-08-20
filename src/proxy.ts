@@ -18,6 +18,9 @@ const OPEN_PATHS = [
   // a página de apresentação: quem chega nela ainda não tem conta, que é
   // justamente o ponto
   "/pagina",
+  // aceite de convite: quem chega aqui ainda não tem conta neste workspace,
+  // e mandá-lo para o login mataria o convite no caminho
+  "/convite",
   "/aprovar",
   "/compartilhar",
   "/nota",

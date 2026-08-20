@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { filtroDeProjetos, exigirMembroDoWorkspace } from "@/server/escopo";
 import { currentWorkspace } from "@/lib/auth";
 
 async function assertProject(projectId: string) {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
   });
   if (!project) throw new Error("Projeto não encontrado");
   return project;
@@ -16,7 +17,7 @@ async function assertProject(projectId: string) {
 async function assertSprint(sprintId: string) {
   const workspace = await currentWorkspace();
   const sprint = await db.sprint.findFirst({
-    where: { id: sprintId, project: { workspaceId: workspace.id } },
+    where: { id: sprintId, project: await filtroDeProjetos() },
   });
   if (!sprint) throw new Error("Sprint não encontrada");
   return sprint;
@@ -29,6 +30,7 @@ export async function createSprint(input: {
   startDate?: string | null;
   endDate?: string | null;
 }) {
+  await exigirMembroDoWorkspace();
   await assertProject(input.projectId);
   const last = await db.sprint.findFirst({
     where: { projectId: input.projectId },
@@ -60,6 +62,7 @@ export async function updateSprint(
     status?: string;
   },
 ) {
+  await exigirMembroDoWorkspace();
   await assertSprint(sprintId);
   await db.sprint.update({
     where: { id: sprintId },
@@ -87,6 +90,7 @@ export async function updateSprint(
 
 /** Inicia a sprint (e encerra qualquer outra ativa no projeto). */
 export async function startSprint(sprintId: string) {
+  await exigirMembroDoWorkspace();
   const sprint = await assertSprint(sprintId);
   await db.$transaction([
     db.sprint.updateMany({
@@ -106,6 +110,7 @@ export async function startSprint(sprintId: string) {
 
 /** Conclui a sprint e move as tarefas não finalizadas para o backlog. */
 export async function completeSprint(sprintId: string) {
+  await exigirMembroDoWorkspace();
   const sprint = await assertSprint(sprintId);
   await db.task.updateMany({
     where: {
@@ -122,6 +127,7 @@ export async function completeSprint(sprintId: string) {
 }
 
 export async function deleteSprint(sprintId: string) {
+  await exigirMembroDoWorkspace();
   await assertSprint(sprintId);
   await db.task.updateMany({ where: { sprintId }, data: { sprintId: null } });
   await db.sprint.delete({ where: { id: sprintId } });

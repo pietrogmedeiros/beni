@@ -4,6 +4,11 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import {
+  escopoDoChamador,
+  exigirMembroDoChamador,
+  filtroDeMembrosDoChamador,
+} from "@/server/escopo";
 import type { ApiCaller } from "@/server/api-auth";
 import { taskJson, taskOf, taskShape } from "@/server/api-core";
 import { createTaskViaApi, updateTaskViaApi } from "@/server/api-tasks";
@@ -91,7 +96,7 @@ export function buildMcpServer(caller: ApiCaller, origin?: string) {
         const [workspace, members] = await Promise.all([
           db.workspace.findUnique({ where: { id: caller.workspaceId }, select: { name: true } }),
           db.membership.findMany({
-            where: { workspaceId: caller.workspaceId },
+            where: await filtroDeMembrosDoChamador(caller),
             include: { user: { select: { name: true, email: true } } },
           }),
         ]);
@@ -110,7 +115,7 @@ export function buildMcpServer(caller: ApiCaller, origin?: string) {
     async () =>
       responder(async () => {
         const projects = await db.project.findMany({
-          where: { workspaceId: caller.workspaceId, archived: false },
+          where: { ...(await escopoDoChamador(caller)), archived: false },
           include: {
             statuses: { orderBy: { order: "asc" }, select: { name: true } },
             sprints: {
@@ -158,10 +163,10 @@ export function buildMcpServer(caller: ApiCaller, origin?: string) {
           archived: false,
           project: project
             ? {
-                workspaceId: caller.workspaceId,
+                ...(await escopoDoChamador(caller)),
                 OR: [{ id: project }, { key: { equals: project, mode: "insensitive" } }],
               }
-            : { workspaceId: caller.workspaceId },
+            : await escopoDoChamador(caller),
         };
 
         if (status === "aberto") where.status = { category: { notIn: ["DONE", "CANCELED"] } };
@@ -280,7 +285,7 @@ export function buildMcpServer(caller: ApiCaller, origin?: string) {
             assigneeId: caller.userId,
             archived: false,
             status: { category: { notIn: ["DONE", "CANCELED"] } },
-            project: { workspaceId: caller.workspaceId },
+            project: await escopoDoChamador(caller),
           },
           include: taskShape,
           orderBy: [{ dueDate: { sort: "asc", nulls: "last" } }],
@@ -317,13 +322,13 @@ export function buildMcpServer(caller: ApiCaller, origin?: string) {
         const ids = await searchTaskIds(caller.workspaceId, q, 30);
         const tasks = ids
           ? await db.task.findMany({
-              where: { id: { in: ids }, project: { workspaceId: caller.workspaceId } },
+              where: { id: { in: ids }, project: await escopoDoChamador(caller) },
               include: taskShape,
             })
           : await db.task.findMany({
               where: {
                 archived: false,
-                project: { workspaceId: caller.workspaceId },
+                project: await escopoDoChamador(caller),
                 OR: [
                   { title: { contains: q, mode: "insensitive" } },
                   { description: { contains: q, mode: "insensitive" } },
@@ -496,9 +501,10 @@ export function buildMcpServer(caller: ApiCaller, origin?: string) {
     },
     async ({ name, description, key }) =>
       responder(async () => {
+        await exigirMembroDoChamador(caller);
         const chave = (key || projectKeyFrom(name)).toUpperCase().slice(0, 6);
         const existente = await db.project.findFirst({
-          where: { workspaceId: caller.workspaceId, key: chave },
+          where: { ...(await escopoDoChamador(caller)), key: chave },
         });
         if (existente) throw new Error(`Já existe um projeto com a chave ${chave}`);
 

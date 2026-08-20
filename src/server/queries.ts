@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { currentWorkspace, requireUser } from "@/lib/auth";
+import { filtroDeProjetos, projetosPermitidos } from "@/server/escopo";
 import { searchTaskIds } from "@/server/search";
 
 /* ————— Tipos serializáveis enviados para os componentes client ————— */
@@ -146,9 +147,11 @@ export const getWorkspaceContext = cache(async () => {
   const user = await requireUser();
   const workspace = await currentWorkspace();
 
+  const permitidos = await projetosPermitidos();
+
   const [projects, members, tags] = await Promise.all([
     db.project.findMany({
-      where: { workspaceId: workspace.id, archived: false },
+      where: { ...(await filtroDeProjetos()), archived: false },
       orderBy: { order: "asc" },
       include: {
         _count: { select: { tasks: true } },
@@ -157,7 +160,24 @@ export const getWorkspaceContext = cache(async () => {
       },
     }),
     db.membership.findMany({
-      where: { workspaceId: workspace.id },
+      // Para quem é do workspace, o time inteiro. Para convidado, só quem tem
+      // a ver com os projetos dele: entregar a lista completa daria ao cliente
+      // o organograma da empresa de brinde, e ele nem precisa disso para
+      // atribuir tarefa dentro do projeto que recebeu.
+      where: {
+        workspaceId: workspace.id,
+        ...(permitidos === null
+          ? {}
+          : {
+              user: {
+                OR: [
+                  { assignedTasks: { some: { projectId: { in: permitidos } } } },
+                  { reportedTasks: { some: { projectId: { in: permitidos } } } },
+                  { acessos: { some: { projectId: { in: permitidos } } } },
+                ],
+              },
+            }),
+      },
       // o carimbo da foto vem junto para montar o endereço com `?v=`; os bytes
       // ficam onde estão, e são buscados pela rota só quando a imagem carrega
       include: { user: { include: { avatarFoto: { select: { updatedAt: true } } } } },
@@ -220,7 +240,7 @@ export const getWorkspaceContext = cache(async () => {
 export const getProject = cache(async (projectId: string) => {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
     include: {
       statuses: { orderBy: { order: "asc" } },
       sprints: { orderBy: { order: "asc" } },
@@ -272,7 +292,7 @@ export const getProjectTasks = cache(async (projectId: string) => {
     where: {
       projectId,
       archived: false,
-      project: { workspaceId: workspace.id },
+      project: await filtroDeProjetos(),
     },
     include: taskInclude,
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
@@ -283,7 +303,7 @@ export const getProjectTasks = cache(async (projectId: string) => {
 export const getTaskDetail = cache(async (taskId: string) => {
   const workspace = await currentWorkspace();
   const task = await db.task.findFirst({
-    where: { id: taskId, project: { workspaceId: workspace.id } },
+    where: { id: taskId, project: await filtroDeProjetos() },
     include: {
       ...taskInclude,
       subtasks: {
@@ -421,7 +441,7 @@ export const getMyTasks = cache(async () => {
     where: {
       assigneeId: user.id,
       archived: false,
-      project: { workspaceId: workspace.id, archived: false },
+      project: { ...(await filtroDeProjetos()), archived: false },
     },
     include: taskInclude,
     orderBy: [{ dueDate: "asc" }, { order: "asc" }],
@@ -437,13 +457,13 @@ export const getWorkspaceOverview = cache(async () => {
     db.task.findMany({
       where: {
         archived: false,
-        project: { workspaceId: workspace.id, archived: false },
+        project: { ...(await filtroDeProjetos()), archived: false },
       },
       include: taskInclude,
       orderBy: { updatedAt: "desc" },
     }),
     db.project.findMany({
-      where: { workspaceId: workspace.id, archived: false },
+      where: { ...(await filtroDeProjetos()), archived: false },
       orderBy: { order: "asc" },
       include: {
         statuses: true,
@@ -459,7 +479,7 @@ export const getWorkspaceOverview = cache(async () => {
       },
     }),
     db.activity.findMany({
-      where: { project: { workspaceId: workspace.id } },
+      where: { project: await filtroDeProjetos() },
       include: {
         user: true,
         task: { select: { id: true, number: true, title: true } },
@@ -518,7 +538,7 @@ export const searchTasks = cache(async (term: string) => {
   if (ids) {
     if (ids.length === 0) return [];
     const found = await db.task.findMany({
-      where: { id: { in: ids }, project: { workspaceId: workspace.id } },
+      where: { id: { in: ids }, project: await filtroDeProjetos() },
       include: taskInclude,
     });
     // preserva a ordem de relevância devolvida pelo índice
@@ -533,7 +553,7 @@ export const searchTasks = cache(async (term: string) => {
   const tasks = await db.task.findMany({
     where: {
       archived: false,
-      project: { workspaceId: workspace.id },
+      project: await filtroDeProjetos(),
       OR: [
         { title: { contains: value, mode: "insensitive" } },
         { description: { contains: value, mode: "insensitive" } },
@@ -549,7 +569,7 @@ export const searchTasks = cache(async (term: string) => {
 export const getProjectDependencies = cache(async (projectId: string) => {
   const workspace = await currentWorkspace();
   const deps = await db.dependency.findMany({
-    where: { task: { projectId, project: { workspaceId: workspace.id } } },
+    where: { task: { projectId, project: await filtroDeProjetos() } },
     select: { taskId: true, dependsOnId: true },
   });
   return deps;

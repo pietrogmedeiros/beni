@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { escopoDoChamador } from "@/server/escopo";
 import { handler, readJson, taskJson, taskShape } from "@/server/api-core";
 import { createTaskViaApi, type CreateTaskInput } from "@/server/api-tasks";
 import type { Prisma } from "@/generated/prisma/client";
@@ -17,7 +18,7 @@ export const GET = handler(async (caller, request) => {
   const limit = Math.min(Number(p.get("limit") ?? 50), 200);
 
   const where: Prisma.TaskWhereInput = {
-    project: { workspaceId: caller.workspaceId },
+    project: await escopoDoChamador(caller),
     archived: p.get("archived") === "true" ? true : false,
   };
 

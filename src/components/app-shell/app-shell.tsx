@@ -41,6 +41,7 @@ export function AppShell({
   tags,
   desktop,
   podeTriar,
+  convidado,
   convite,
   emailPendente,
   children,
@@ -53,6 +54,8 @@ export function AppShell({
   desktop?: boolean;
   /** Quem tria o feedback enxerga a caixa de entrada. */
   podeTriar?: boolean;
+  /** Convidado de projeto: não alcança nada fora do projeto dele. */
+  convidado?: boolean;
   /** Mostrar o convite único de feedback nesta sessão. */
   convite?: boolean;
   /** E-mail ainda não confirmado — mostra o aviso, sem bloquear nada. */
@@ -210,6 +213,7 @@ export function AppShell({
               )}
             >
               <IconRail
+                convidado={convidado}
                 unread={unread}
                 collapsed={collapsed && !hidePanel}
                 onExpand={togglePanel}
@@ -232,6 +236,7 @@ export function AppShell({
                   onCollapse={togglePanel}
                   onFeedback={() => setFeedbackOpen(true)}
                   podeTriar={podeTriar}
+                  convidado={convidado}
                 />
               )}
             </div>

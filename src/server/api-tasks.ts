@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { escopoDoChamador } from "@/server/escopo";
 import { syncTask } from "@/server/search";
 import { projectOf, taskShape } from "@/server/api-core";
 import type { ApiCaller } from "@/server/api-auth";
@@ -46,13 +47,13 @@ async function resolveProject(caller: ApiCaller, input: CreateTaskInput) {
 
   const project =
     (await db.project.findFirst({
-      where: { workspaceId: caller.workspaceId, key: { equals: hint, mode: "insensitive" } },
+      where: { ...(await escopoDoChamador(caller)), key: { equals: hint, mode: "insensitive" } },
     })) ??
     (await db.project.findFirst({
-      where: { workspaceId: caller.workspaceId, id: hint },
+      where: { ...(await escopoDoChamador(caller)), id: hint },
     })) ??
     (await db.project.findFirst({
-      where: { workspaceId: caller.workspaceId, name: { contains: hint, mode: "insensitive" } },
+      where: { ...(await escopoDoChamador(caller)), name: { contains: hint, mode: "insensitive" } },
     }));
 
   if (!project) throw new Error(`Projeto "${hint}" não encontrado neste workspace`);
@@ -64,7 +65,7 @@ async function resolveAssignee(caller: ApiCaller, hint?: string | null) {
   if (!hint) return undefined;
 
   const members = await db.membership.findMany({
-    where: { workspaceId: caller.workspaceId },
+    where: await escopoDoChamador(caller),
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 
@@ -140,7 +141,7 @@ export async function createTaskViaApi(caller: ApiCaller, input: CreateTaskInput
 
   const parent = input.parent
     ? await db.task.findFirst({
-        where: { id: input.parent, project: { workspaceId: caller.workspaceId } },
+        where: { id: input.parent, project: await escopoDoChamador(caller) },
         select: { id: true },
       })
     : null;
@@ -204,7 +205,7 @@ export async function updateTaskViaApi(
   input: UpdateTaskInput,
 ) {
   const current = await db.task.findFirst({
-    where: { id: taskId, project: { workspaceId: caller.workspaceId } },
+    where: { id: taskId, project: await escopoDoChamador(caller) },
     select: { id: true, projectId: true },
   });
   if (!current) throw new Error("Tarefa não encontrada");

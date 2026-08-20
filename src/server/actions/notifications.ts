@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { filtroDeProjetos } from "@/server/escopo";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 
 export type RecentTask = {
@@ -16,7 +17,7 @@ export type RecentTask = {
 export async function recentTasks(limit = 8): Promise<RecentTask[]> {
   const workspace = await currentWorkspace();
   const tasks = await db.task.findMany({
-    where: { archived: false, project: { workspaceId: workspace.id } },
+    where: { archived: false, project: await filtroDeProjetos() },
     include: {
       status: { select: { color: true } },
       project: { select: { key: true, color: true } },
@@ -85,7 +86,7 @@ export async function notifications(): Promise<NotificationItem[]> {
         requestedById: user.id,
         status: { in: ["APPROVED", "REJECTED"] },
         decidedAt: { not: null },
-        task: { project: { workspaceId: workspace.id } },
+        task: { project: await filtroDeProjetos() },
       },
       include: { task: { select: { id: true, title: true } } },
       orderBy: { decidedAt: "desc" },
@@ -97,7 +98,7 @@ export async function notifications(): Promise<NotificationItem[]> {
         archived: false,
         dueDate: { lt: today },
         status: { category: { notIn: ["DONE", "CANCELED"] } },
-        project: { workspaceId: workspace.id },
+        project: await filtroDeProjetos(),
       },
       include: { project: { select: { key: true } } },
       orderBy: { dueDate: "asc" },

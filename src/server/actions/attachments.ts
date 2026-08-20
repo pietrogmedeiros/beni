@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { filtroDeProjetos } from "@/server/escopo";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { kindOf, removeUpload } from "@/lib/uploads";
 
@@ -39,7 +40,7 @@ function toDTO(a: {
 export async function listAttachments(taskId: string): Promise<AttachmentDTO[]> {
   const workspace = await currentWorkspace();
   const rows = await db.attachment.findMany({
-    where: { taskId, task: { project: { workspaceId: workspace.id } } },
+    where: { taskId, task: { project: await filtroDeProjetos() } },
     include: { uploadedBy: { select: { name: true } } },
     orderBy: { createdAt: "asc" },
   });
@@ -51,7 +52,7 @@ export async function deleteAttachment(id: string) {
   const workspace = await currentWorkspace();
 
   const attachment = await db.attachment.findFirst({
-    where: { id, task: { project: { workspaceId: workspace.id } } },
+    where: { id, task: { project: await filtroDeProjetos() } },
     include: { task: { select: { projectId: true, id: true } } },
   });
   if (!attachment) throw new Error("Anexo não encontrado");

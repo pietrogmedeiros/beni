@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
+import { filtroDeProjetos } from "@/server/escopo";
 import { registrarAcao } from "@/server/actions/telemetria";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { excerpt, newBlock, sanitizeBlocks, type Block } from "@/lib/notes";
@@ -31,7 +32,7 @@ export type NoteDetail = {
 async function noteOf(noteId: string) {
   const workspace = await currentWorkspace();
   const note = await db.note.findFirst({
-    where: { id: noteId, project: { workspaceId: workspace.id } },
+    where: { id: noteId, project: await filtroDeProjetos() },
   });
   if (!note) throw new Error("Anotação não encontrada");
   return note;
@@ -40,7 +41,7 @@ async function noteOf(noteId: string) {
 async function projectOf(projectId: string) {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
     select: { id: true },
   });
   if (!project) throw new Error("Projeto não encontrado");

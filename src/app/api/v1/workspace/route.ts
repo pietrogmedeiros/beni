@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { filtroDeMembrosDoChamador } from "@/server/escopo";
 import { handler } from "@/server/api-core";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const GET = handler(async (caller) => {
       select: { id: true, name: true, slug: true },
     }),
     db.membership.findMany({
-      where: { workspaceId: caller.workspaceId },
+      where: await filtroDeMembrosDoChamador(caller),
       include: { user: { select: { name: true, email: true } } },
       orderBy: { createdAt: "asc" },
     }),

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { filtroDeProjetos } from "@/server/escopo";
 import { withBase } from "@/lib/base-path";
 import { avisarDecisaoDeAprovacao } from "@/server/notify";
 import { registrarAcao } from "@/server/actions/telemetria";
@@ -15,7 +16,7 @@ const APPROVAL_TTL_DAYS = 30;
 async function assertTask(taskId: string) {
   const workspace = await currentWorkspace();
   const task = await db.task.findFirst({
-    where: { id: taskId, project: { workspaceId: workspace.id } },
+    where: { id: taskId, project: await filtroDeProjetos() },
   });
   if (!task) throw new Error("Tarefa não encontrada");
   return task;
@@ -80,7 +81,7 @@ export async function requestApproval(input: {
 export async function cancelApproval(approvalId: string) {
   const workspace = await currentWorkspace();
   const approval = await db.approval.findFirst({
-    where: { id: approvalId, task: { project: { workspaceId: workspace.id } } },
+    where: { id: approvalId, task: { project: await filtroDeProjetos() } },
   });
   if (!approval) throw new Error("Pedido não encontrado");
   await db.approval.delete({ where: { id: approvalId } });

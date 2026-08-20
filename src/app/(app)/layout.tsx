@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getWorkspaceContext } from "@/server/queries";
 import { AppShell } from "@/components/app-shell/app-shell";
 import { deveConvidar, podeTriarFeedback } from "@/server/feedback-shell";
+import { ehConvidado } from "@/server/escopo";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const isDesktop = (await headers())
@@ -19,9 +20,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/api/session/clear");
   }
 
-  const [podeTriar, convite] = await Promise.all([
+  const [podeTriar, convite, convidado] = await Promise.all([
     podeTriarFeedback(),
     deveConvidar(ctx.projects.map((p) => p.id)),
+    // decidido no servidor: o que o convidado não alcança nem chega ao HTML
+    ehConvidado(),
   ]);
 
   return (
@@ -32,7 +35,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       members={ctx.members}
       tags={ctx.tags}
       desktop={isDesktop}
-      podeTriar={podeTriar}
+      podeTriar={podeTriar && !convidado}
+      convidado={convidado}
       convite={convite}
       emailPendente={!ctx.user.emailVerifiedAt}
     >

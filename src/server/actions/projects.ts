@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ehMascoteValido } from "@/lib/avatares";
 import { db } from "@/lib/db";
+import { filtroDeProjetos, exigirMembroDoWorkspace } from "@/server/escopo";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { DEFAULT_STATUSES } from "@/lib/constants";
 import { projectKeyFrom } from "@/lib/utils";
@@ -12,7 +13,7 @@ import { projectKeyFrom } from "@/lib/utils";
 async function assertProjectAccess(projectId: string) {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
   });
   if (!project) throw new Error("Projeto não encontrado");
   return project;
@@ -33,6 +34,7 @@ export async function createProject(input: {
   icon?: string;
   key?: string | null;
 }) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   const data = projectSchema.parse(input);
 
@@ -79,6 +81,7 @@ export async function createProject(input: {
 }
 
 export async function createProjectAndGo(formData: FormData) {
+  await exigirMembroDoWorkspace();
   const project = await createProject({
     name: String(formData.get("name") ?? ""),
     description: String(formData.get("description") ?? "") || null,
@@ -101,6 +104,7 @@ export async function updateProject(
     endDate: string | null;
   }>,
 ) {
+  await exigirMembroDoWorkspace();
   await assertProjectAccess(projectId);
   await db.project.update({
     where: { id: projectId },
@@ -122,6 +126,7 @@ export async function updateProject(
 }
 
 export async function deleteProject(projectId: string) {
+  await exigirMembroDoWorkspace();
   await assertProjectAccess(projectId);
 
   // Cobrança tem `onDelete: Restrict`, então o banco recusaria de qualquer
@@ -145,6 +150,7 @@ export async function createStatus(
   projectId: string,
   input: { name: string; color: string; category: string },
 ) {
+  await exigirMembroDoWorkspace();
   await assertProjectAccess(projectId);
   const last = await db.taskStatus.findFirst({
     where: { projectId },
@@ -168,6 +174,7 @@ export async function updateStatus(
   statusId: string,
   input: { name?: string; color?: string; category?: string },
 ) {
+  await exigirMembroDoWorkspace();
   const status = await db.taskStatus.findUnique({ where: { id: statusId } });
   if (!status) throw new Error("Status não encontrado");
   await assertProjectAccess(status.projectId);
@@ -180,6 +187,7 @@ export async function updateStatus(
 }
 
 export async function deleteStatus(statusId: string) {
+  await exigirMembroDoWorkspace();
   const status = await db.taskStatus.findUnique({
     where: { id: statusId },
     include: { _count: { select: { tasks: true } } },
@@ -210,6 +218,7 @@ export async function deleteStatus(statusId: string) {
 }
 
 export async function reorderStatuses(projectId: string, orderedIds: string[]) {
+  await exigirMembroDoWorkspace();
   await assertProjectAccess(projectId);
   await db.$transaction(
     orderedIds.map((id, i) =>
@@ -222,6 +231,7 @@ export async function reorderStatuses(projectId: string, orderedIds: string[]) {
 /* ————— Tags ————— */
 
 export async function createTag(input: { name: string; color: string }) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   const tag = await db.tag.upsert({
     where: { workspaceId_name: { workspaceId: workspace.id, name: input.name } },
@@ -233,6 +243,7 @@ export async function createTag(input: { name: string; color: string }) {
 }
 
 export async function deleteTag(tagId: string) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   await db.tag.deleteMany({ where: { id: tagId, workspaceId: workspace.id } });
   revalidatePath("/", "layout");
@@ -250,6 +261,7 @@ export async function updateProfile(input: {
 }
 
 export async function updateWorkspaceName(name: string) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   await db.workspace.update({ where: { id: workspace.id }, data: { name } });
   revalidatePath("/", "layout");

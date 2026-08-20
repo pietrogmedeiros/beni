@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { filtroDeProjetos } from "@/server/escopo";
 import { currentWorkspace } from "@/lib/auth";
 
 export async function listProjectTasks(projectId: string) {
@@ -9,7 +10,7 @@ export async function listProjectTasks(projectId: string) {
     where: {
       projectId,
       archived: false,
-      project: { workspaceId: workspace.id },
+      project: await filtroDeProjetos(),
     },
     select: { id: true, title: true, number: true },
     orderBy: { number: "asc" },

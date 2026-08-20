@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { filtroDeProjetos, projetosPermitidos } from "@/server/escopo";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import {
   detectBulkMode,
@@ -50,7 +51,7 @@ export async function previewBulkTasks(
 ): Promise<BulkPreview> {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
     select: { id: true },
   });
   if (!project) throw new Error("Projeto não encontrado");
@@ -61,7 +62,13 @@ export async function previewBulkTasks(
   const ignored = todas.length - parsed.length;
 
   const members = await db.membership.findMany({
-    where: { workspaceId: workspace.id },
+    // mesma regra do resto: convidado não recebe a lista do time inteiro
+    where: {
+      workspaceId: workspace.id,
+      ...((await projetosPermitidos()) === null
+        ? {}
+        : { user: { acessos: { some: { projectId } } } }),
+    },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
 
@@ -110,7 +117,7 @@ export async function createBulkTasks(
   const workspace = await currentWorkspace();
 
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
     select: { id: true },
   });
   if (!project) throw new Error("Projeto não encontrado");

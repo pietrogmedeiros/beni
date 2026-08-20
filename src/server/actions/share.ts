@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { filtroDeProjetos } from "@/server/escopo";
 import { withBase } from "@/lib/base-path";
 import { currentWorkspace, getSession, requireUser } from "@/lib/auth";
 import { toTaskDTO } from "@/server/queries";
@@ -15,7 +16,7 @@ const SHARE_TTL_DAYS = 90;
 async function assertProject(projectId: string) {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
   });
   if (!project) throw new Error("Projeto não encontrado");
   return project;
@@ -96,7 +97,7 @@ export async function findProjectShare(projectId: string) {
 export async function setShareComments(shareId: string, allowComments: boolean) {
   const workspace = await currentWorkspace();
   const share = await db.projectShare.findFirst({
-    where: { id: shareId, project: { workspaceId: workspace.id } },
+    where: { id: shareId, project: await filtroDeProjetos() },
   });
   if (!share) throw new Error("Link não encontrado");
   await db.projectShare.update({
@@ -109,7 +110,7 @@ export async function setShareComments(shareId: string, allowComments: boolean) 
 export async function revokeProjectShare(shareId: string) {
   const workspace = await currentWorkspace();
   await db.projectShare.deleteMany({
-    where: { id: shareId, project: { workspaceId: workspace.id } },
+    where: { id: shareId, project: await filtroDeProjetos() },
   });
   revalidatePath("/", "layout");
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { filtroDeProjetos } from "@/server/escopo";
 import { requireUser, currentWorkspace } from "@/lib/auth";
 import {
   MAX_UPLOAD_BYTES,
@@ -35,14 +36,14 @@ export async function POST(request: Request) {
   // que o dono esteja no workspace de quem envia
   const task = taskId
     ? await db.task.findFirst({
-        where: { id: taskId, project: { workspaceId: workspace.id } },
+        where: { id: taskId, project: await filtroDeProjetos() },
         select: { id: true, projectId: true },
       })
     : null;
 
   const note = noteId
     ? await db.note.findFirst({
-        where: { id: noteId, project: { workspaceId: workspace.id } },
+        where: { id: noteId, project: await filtroDeProjetos() },
         select: { id: true, projectId: true },
       })
     : null;

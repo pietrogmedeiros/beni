@@ -74,6 +74,7 @@ export function NavPanel({
   onCollapse,
   onFeedback,
   podeTriar,
+  convidado,
 }: {
   user: UserDTO;
   projects: ProjectItem[];
@@ -83,6 +84,8 @@ export function NavPanel({
   onCollapse?: () => void;
   onFeedback: () => void;
   podeTriar?: boolean;
+  /** Convidado de projeto: sem chat, sem lista geral, sem criar espaço. */
+  convidado?: boolean;
 }) {
   const pathname = usePathname();
   const section = sectionForPath(pathname);
@@ -162,20 +165,24 @@ export function NavPanel({
           active={pathname.startsWith("/my-tasks")}
           onNavigate={onNavigate}
         />
-        <PanelLink
-          href="/chat"
-          icon={<MessageSquare className="size-4" />}
-          label="Conversas"
-          active={pathname.startsWith("/chat")}
-          onNavigate={onNavigate}
-        />
-        <PanelLink
-          href="/projects"
-          icon={<FolderKanban className="size-4" />}
-          label="Todos os projetos"
-          active={pathname === "/projects"}
-          onNavigate={onNavigate}
-        />
+        {!convidado && (
+          <>
+            <PanelLink
+              href="/chat"
+              icon={<MessageSquare className="size-4" />}
+              label="Conversas"
+              active={pathname.startsWith("/chat")}
+              onNavigate={onNavigate}
+            />
+            <PanelLink
+              href="/projects"
+              icon={<FolderKanban className="size-4" />}
+              label="Todos os projetos"
+              active={pathname === "/projects"}
+              onNavigate={onNavigate}
+            />
+          </>
+        )}
         <PanelLink
           href="/settings"
           icon={<Settings className="size-4" />}
@@ -216,7 +223,7 @@ export function NavPanel({
         </button>
 
         {/* projetos */}
-        <SectionHeader label="Espaços" onAdd={onNewProject} />
+        <SectionHeader label="Espaços" onAdd={convidado ? undefined : onNewProject} />
         {projects.length === 0 ? (
           <button
             type="button"
@@ -237,16 +244,20 @@ export function NavPanel({
             />
           ))
         )}
-        <button
-          type="button"
-          onClick={onNewProject}
-          className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
-        >
-          <Plus className="size-3.5" />
-          Novo espaço
-        </button>
+        {!convidado && (
+          <button
+            type="button"
+            onClick={onNewProject}
+            className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-sidebar-accent/60 hover:text-foreground"
+          >
+            <Plus className="size-3.5" />
+            Novo espaço
+          </button>
+        )}
 
-        {/* canais */}
+        {/* canais: conversa é do workspace, e convidado não entra em nenhuma */}
+        {!convidado && (
+        <>
         <SectionHeader label="Canais" />
         {channels
           .filter((c) => c.kind !== "DIRECT")
@@ -285,6 +296,8 @@ export function NavPanel({
           <Plus className="size-3.5" />
           Adicionar canal
         </Link>
+        </>
+        )}
       </div>
 
       <div className="border-t p-2">

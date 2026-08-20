@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { ehConvidado } from "@/server/escopo";
 import { currentWorkspace, requireUser } from "@/lib/auth";
 import { publish } from "@/server/chat-bus";
 
@@ -58,7 +59,20 @@ function displayName(
 
 /* ————— Leitura ————— */
 
+/**
+ * Conversa é do workspace, não do projeto.
+ *
+ * Por isso convidado não entra em nenhum canal: liberar um deles exporia
+ * discussão de times que não têm nada a ver com o projeto que ele recebeu.
+ * A checagem fica numa função só, chamada na entrada de cada ação, porque
+ * filtrar canal a canal seria uma lista para alguém esquecer de atualizar.
+ */
+async function recusarConvidado() {
+  if (await ehConvidado()) throw new Error("SEM_ACESSO");
+}
+
 export async function listChannels(): Promise<ChannelSummary[]> {
+  await recusarConvidado();
   const user = await requireUser();
   const workspace = await currentWorkspace();
 
@@ -141,6 +155,7 @@ export async function listChannels(): Promise<ChannelSummary[]> {
 
 /** Canais públicos do workspace que o usuário ainda não segue. */
 export async function listDiscoverableChannels() {
+  await recusarConvidado();
   const user = await requireUser();
   const workspace = await currentWorkspace();
 
@@ -223,6 +238,7 @@ async function withTasks(messages: { taskId: string | null }[]) {
 }
 
 export async function loadChannel(channelId: string) {
+  await recusarConvidado();
   const { user, membership, channel } = await memberOrThrow(channelId);
 
   const [messages, members] = await Promise.all([
@@ -265,6 +281,7 @@ export async function loadChannel(channelId: string) {
 export type ChannelDetail = NonNullable<Awaited<ReturnType<typeof loadChannel>>>;
 
 export async function loadThread(messageId: string) {
+  await recusarConvidado();
   const root = await db.message.findUnique({
     where: { id: messageId },
     include: messageInclude,
@@ -318,6 +335,7 @@ async function resolveMentions(body: string, channelId: string) {
 }
 
 export async function sendMessage(input: z.input<typeof sendSchema>) {
+  await recusarConvidado();
   const data = sendSchema.parse(input);
   const { user } = await memberOrThrow(data.channelId);
 
@@ -357,6 +375,7 @@ export async function sendMessage(input: z.input<typeof sendSchema>) {
 }
 
 export async function editMessage(messageId: string, body: string) {
+  await recusarConvidado();
   const user = await requireUser();
   const message = await db.message.findUnique({ where: { id: messageId } });
   if (!message || message.authorId !== user.id) {
@@ -370,6 +389,7 @@ export async function editMessage(messageId: string, body: string) {
 }
 
 export async function deleteMessage(messageId: string) {
+  await recusarConvidado();
   const user = await requireUser();
   const message = await db.message.findUnique({ where: { id: messageId } });
   if (!message || message.authorId !== user.id) {
@@ -380,6 +400,7 @@ export async function deleteMessage(messageId: string) {
 }
 
 export async function toggleReaction(messageId: string, emoji: string) {
+  await recusarConvidado();
   const user = await requireUser();
   const message = await db.message.findUnique({ where: { id: messageId } });
   if (!message) return;
@@ -399,6 +420,7 @@ export async function toggleReaction(messageId: string, emoji: string) {
 }
 
 export async function markChannelRead(channelId: string) {
+  await recusarConvidado();
   const { user } = await memberOrThrow(channelId);
   await db.channelMember.update({
     where: { channelId_userId: { channelId, userId: user.id } },
@@ -419,6 +441,7 @@ export async function createChannel(input: {
   memberIds: string[];
   projectId?: string | null;
 }) {
+  await recusarConvidado();
   const user = await requireUser();
   const workspace = await currentWorkspace();
 
@@ -456,6 +479,7 @@ export async function createChannel(input: {
 
 /** Abre (ou cria) a conversa direta com outra pessoa. */
 export async function openDirectChannel(otherUserId: string) {
+  await recusarConvidado();
   const user = await requireUser();
   const workspace = await currentWorkspace();
   if (otherUserId === user.id) throw new Error("Escolha outra pessoa");
@@ -488,6 +512,7 @@ export async function openDirectChannel(otherUserId: string) {
 }
 
 export async function joinChannel(channelId: string) {
+  await recusarConvidado();
   const user = await requireUser();
   const workspace = await currentWorkspace();
   const channel = await db.channel.findFirst({
@@ -505,6 +530,7 @@ export async function joinChannel(channelId: string) {
 }
 
 export async function leaveChannel(channelId: string) {
+  await recusarConvidado();
   const user = await requireUser();
   await db.channelMember.deleteMany({ where: { channelId, userId: user.id } });
   publish({ type: "channel", channelId });
@@ -512,6 +538,7 @@ export async function leaveChannel(channelId: string) {
 }
 
 export async function addChannelMembers(channelId: string, userIds: string[]) {
+  await recusarConvidado();
   await memberOrThrow(channelId);
   await db.channelMember.createMany({
     data: userIds.map((userId) => ({ channelId, userId })),
@@ -524,6 +551,7 @@ export async function updateChannel(
   channelId: string,
   input: { name?: string; topic?: string | null },
 ) {
+  await recusarConvidado();
   const { membership } = await memberOrThrow(channelId);
   if (!membership.isAdmin) throw new Error("Só administradores do canal podem editar");
   await db.channel.update({
@@ -538,6 +566,7 @@ export async function updateChannel(
 
 /** Total de não lidas — usado no selo da barra lateral. */
 export async function unreadTotals() {
+  await recusarConvidado();
   const user = await requireUser();
   const workspace = await currentWorkspace();
 

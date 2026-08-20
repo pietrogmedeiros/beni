@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { escopoDoChamador } from "@/server/escopo";
 import { handler, taskJson, taskShape } from "@/server/api-core";
 import { searchTaskIds } from "@/server/search";
 
@@ -17,13 +18,13 @@ export const GET = handler(async (caller, request) => {
 
   const tasks = ids
     ? await db.task.findMany({
-        where: { id: { in: ids }, project: { workspaceId: caller.workspaceId } },
+        where: { id: { in: ids }, project: await escopoDoChamador(caller) },
         include: taskShape,
       })
     : await db.task.findMany({
         where: {
           archived: false,
-          project: { workspaceId: caller.workspaceId },
+          project: await escopoDoChamador(caller),
           OR: [
             { title: { contains: q, mode: "insensitive" } },
             { description: { contains: q, mode: "insensitive" } },

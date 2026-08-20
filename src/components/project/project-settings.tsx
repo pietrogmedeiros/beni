@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { DynamicIcon } from "@/components/dynamic-icon";
 import { GithubRepos, type ProjectRepo } from "@/components/project/github-repos";
+import { ConvidadosCard } from "@/components/project/convidados-card";
 import { TagChip } from "@/components/task/task-badges";
 import {
   PALETTE,
@@ -297,6 +298,8 @@ export function ProjectSettings({
             </Button>
           </div>
         </section>
+
+        <ConvidadosCard projectId={project.id} />
 
         <GithubRepos
           projectId={project.id}

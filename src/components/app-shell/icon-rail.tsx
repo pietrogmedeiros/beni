@@ -53,14 +53,26 @@ export function sectionForPath(pathname: string): RailSection {
  * micro-rótulo embaixo. É a navegação de primeiro nível — o painel ao lado
  * mostra o conteúdo da seção escolhida.
  */
+/**
+ * Seções que só existem para quem é do workspace.
+ *
+ * Chat e Painéis atravessam projetos, e "Projetos" lista todos. Para o
+ * convidado nenhuma dessas telas teria conteúdo, e mostrar um ícone que leva a
+ * uma tela vazia é pior do que não mostrar: parece defeito.
+ */
+const SO_DO_TIME: RailSection[] = ["chat", "paineis", "projetos", "inicio"];
+
 export function IconRail({
   unread,
   onNavigate,
   onInvite,
   collapsed,
   onExpand,
+  convidado,
 }: {
   unread: { unread: number; mentions: number };
+  /** Convidado de projeto: só enxerga o projeto dele. */
+  convidado?: boolean;
   onNavigate?: () => void;
   onInvite: () => void;
   /** O painel de navegação está recolhido? */
@@ -69,6 +81,9 @@ export function IconRail({
 }) {
   const pathname = usePathname();
   const active = sectionForPath(pathname);
+  const itens = convidado
+    ? ITEMS.filter((i) => !SO_DO_TIME.includes(i.id))
+    : ITEMS;
 
   return (
     <nav className="flex h-full w-[68px] shrink-0 flex-col items-center gap-1 border-r bg-sidebar py-2">
@@ -81,7 +96,7 @@ export function IconRail({
         <BeniMark className="size-7" />
       </Link>
 
-      {ITEMS.map((item) => {
+      {itens.map((item) => {
         const isActive = active === item.id;
         const badge =
           item.id === "chat"

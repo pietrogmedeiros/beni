@@ -10,6 +10,11 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Papel dentro do workspace.
+///
+/// `GUEST` é o único que **não** enxerga o workspace inteiro: ele só alcança
+/// os projetos listados em `ProjectAccess`. Os outros três continuam vendo
+/// tudo, e a diferença entre eles é de administração, não de visibilidade.
 enum WorkspaceRole {
   OWNER
   ADMIN
@@ -168,6 +173,12 @@ model User {
   /// um cliente não é assunto do time que trabalha no projeto dele.
   clientes  Cliente[]
   cobrancas Cobranca[]
+
+  /// Projetos que este usuário alcança quando é convidado. Só vale para quem
+  /// tem `Membership.role = GUEST`; para os demais a lista é ignorada.
+  acessos           ProjectAccess[] @relation("AcessoDoConvidado")
+  acessosConcedidos ProjectAccess[] @relation("QuemConvidou")
+  convitesCriados   ProjectInvite[] @relation("CriadorDoConvite")
 }
 
 model Workspace {
@@ -215,7 +226,7 @@ model Project {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace    Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   statuses     TaskStatus[]
   sprints      Sprint[]
   tasks        Task[]
@@ -224,6 +235,8 @@ model Project {
   repositories GithubRepo[]
   shares       ProjectShare[]
   cobrancas    Cobranca[]
+  convidados   ProjectAccess[]
+  convites     ProjectInvite[]
 
   @@unique([workspaceId, key])
 }
@@ -933,4 +946,59 @@ model Parcela {
   /// Impede parcela duplicada quando a geração da mensalidade roda duas vezes.
   @@unique([cobrancaId, numero])
   @@index([status, vencimento])
+}
+
+/// ---------------------------------------------------------------------------
+/// Convidado de projeto
+///
+/// Dá a uma pessoa acesso a **um** projeto, sem abrir o workspace. Dentro dele
+/// ela trabalha como membro: cria tarefa, move no quadro, comenta. Fora dele,
+/// nada existe.
+///
+/// É tabela separada, e não uma coluna em `Membership`, porque a mesma pessoa
+/// pode ser convidada para mais de um projeto do mesmo workspace ao longo do
+/// tempo, e porque revogar o acesso a um projeto não pode derrubar o acesso
+/// aos outros.
+/// ---------------------------------------------------------------------------
+
+model ProjectAccess {
+  id        String @id @default(cuid())
+  projectId String
+  userId    String
+
+  /// Quem concedeu. Fica nulo se essa conta for apagada; o acesso continua
+  /// valendo, porque quem convidou não é o que autoriza, é só o registro.
+  concedidoPorId String?
+  createdAt      DateTime @default(now())
+
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user         User    @relation("AcessoDoConvidado", fields: [userId], references: [id], onDelete: Cascade)
+  concedidoPor User?   @relation("QuemConvidou", fields: [concedidoPorId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+/// Convite pendente para um projeto.
+///
+/// Existe porque quase sempre se convida alguém que **ainda não tem conta**. O
+/// convite guarda o e-mail e o projeto; quando a pessoa se cadastra por esse
+/// link, ela entra no workspace como `GUEST` e ganha o `ProjectAccess`.
+model ProjectInvite {
+  id        String @id @default(cuid())
+  projectId String
+  email     String
+  token     String @unique
+
+  criadoPorId String?
+  aceitoEm    DateTime?
+  expiraEm    DateTime?
+  createdAt   DateTime  @default(now())
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  criadoPor User?   @relation("CriadorDoConvite", fields: [criadoPorId], references: [id], onDelete: SetNull)
+
+  /// Um convite pendente por e-mail e projeto: reenviar não pode criar fila.
+  @@unique([projectId, email])
+  @@index([token])
 }

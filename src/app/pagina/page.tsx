@@ -134,6 +134,7 @@ export default function PaginaDoBeni() {
         <DoisModos />
         <Problema />
         <Visoes />
+        <EmMassa />
         <FluxoDeAprovacao />
         <ConectorDoClaude />
         <EscritaEConversa />
@@ -541,6 +542,113 @@ function Problema() {
             <p className="mt-3 flex gap-2.5 text-sm font-medium leading-relaxed">
               <Check className="mt-0.5 size-4 shrink-0 text-primary-strong" />
               <span>{i.jeito}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+    </Secao>
+  );
+}
+
+/**
+ * Criação em massa.
+ *
+ * É a funcionalidade que mais economiza tempo no dia a dia e a que menos se
+ * descobre sozinho, então ganha seção própria e mostra o texto de entrada ao
+ * lado do resultado. Explicar "cria várias tarefas de uma vez" não diz nada;
+ * ver a linha virar tarefa com prazo e responsável diz tudo.
+ */
+function EmMassa() {
+  return (
+    <Secao>
+      <div className="revelar">
+        <Titulo
+          sobre="Criação em massa"
+          descricao="Cole a ata da reunião, a lista do cliente ou o checklist que já estava no seu bloco de notas. Uma tarefa por linha, e o Beni lê prioridade, responsável, tipo, prazo, estimativa e pontos direto do texto."
+        >
+          A reunião acabou com trinta tarefas. Cole e pronto.
+        </Titulo>
+      </div>
+
+      <div className="mt-10 grid items-stretch gap-4 lg:grid-cols-2">
+        <div className="revelar rounded-2xl border bg-neutral-900 p-5 font-mono text-[12.5px] leading-relaxed text-neutral-300">
+          <p className="mb-3 font-sans text-[11px] uppercase tracking-wider text-neutral-500">
+            O que você cola
+          </p>
+          <p>
+            Corrigir login quebrado <span className="text-primary">!alta</span>{" "}
+            <span className="text-sky-400">@ana</span>{" "}
+            <span className="text-rose-400">#bug</span>{" "}
+            <span className="text-emerald-400">14/08</span>{" "}
+            <span className="text-neutral-500">~3h *5</span>
+          </p>
+          <p className="pl-4 text-neutral-500">- Reproduzir o erro</p>
+          <p className="pl-4 text-neutral-500">- Escrever teste de regressão</p>
+          <p className="mt-2">
+            Refatorar cabeçalho <span className="text-primary">!baixa</span>{" "}
+            <span className="text-emerald-400">sexta</span>
+          </p>
+          <p className="mt-2">
+            Revisar textos da home <span className="text-sky-400">@caio</span>
+          </p>
+        </div>
+
+        <div className="revelar rounded-2xl border bg-card p-5">
+          <p className="mb-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+            O que ele mostra antes de criar
+          </p>
+          <div className="space-y-2.5">
+            {[
+              {
+                titulo: "Corrigir login quebrado",
+                marcas: ["Alta", "Ana", "Bug", "14/08", "3h", "5 pts"],
+                sub: "2 subtarefas",
+              },
+              { titulo: "Refatorar cabeçalho", marcas: ["Baixa", "sexta"], sub: null },
+              { titulo: "Revisar textos da home", marcas: ["Caio"], sub: null },
+            ].map((t) => (
+              <div key={t.titulo} className="rounded-xl border bg-background p-3">
+                <p className="text-sm font-medium">{t.titulo}</p>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {t.marcas.map((m) => (
+                    <span
+                      key={m}
+                      className="rounded-md bg-primary/12 px-1.5 py-0.5 text-[10.5px] font-medium text-primary-strong"
+                    >
+                      {m}
+                    </span>
+                  ))}
+                  {t.sub && (
+                    <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                      {t.sub}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="cascata mt-6 grid gap-3 sm:grid-cols-3">
+        {[
+          {
+            t: "Linha indentada vira subtarefa",
+            n: "Marcador de lista e numeração são descartados, então ata de reunião e checklist de Markdown entram sem limpeza.",
+          },
+          {
+            t: "Sem modelo de linguagem",
+            n: "As regras são fixas: o mesmo texto dá sempre o mesmo resultado, e não existe a chance de inventar uma tarefa que ninguém escreveu.",
+          },
+          {
+            t: "Você confere antes",
+            n: "A tela mostra o que vai ser criado, com o que ele reconheceu em cada linha. Só depois é que vira tarefa.",
+          },
+        ].map((i) => (
+          <div key={i.t} className="rounded-2xl border bg-card p-4">
+            <p className="text-sm font-semibold">{i.t}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              {i.n}
             </p>
           </div>
         ))}

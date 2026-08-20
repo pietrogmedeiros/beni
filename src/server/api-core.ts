@@ -1,6 +1,7 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { escopoDoChamador } from "@/server/escopo";
 import { ApiAuthError, authenticateRequest, type ApiCaller } from "@/server/api-auth";
 
 /**
@@ -35,7 +36,7 @@ export function handler(
 /** Garante que o projeto é do workspace de quem chamou. */
 export async function projectOf(caller: ApiCaller, projectId: string) {
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: caller.workspaceId },
+    where: { id: projectId, ...(await escopoDoChamador(caller)) },
   });
   if (!project) throw new Error(`Projeto ${projectId} não encontrado neste workspace`);
   return project;
@@ -56,7 +57,7 @@ export async function taskOf(caller: ApiCaller, idOrRef: string) {
         },
       })
     : await db.task.findFirst({
-        where: { id: idOrRef, project: { workspaceId: caller.workspaceId } },
+        where: { id: idOrRef, project: await escopoDoChamador(caller) },
       });
 
   if (!task) throw new Error(`Tarefa ${idOrRef} não encontrada neste workspace`);

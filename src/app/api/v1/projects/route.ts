@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { escopoDoChamador, exigirMembroDoChamador } from "@/server/escopo";
 import { handler, readJson } from "@/server/api-core";
 import { DEFAULT_STATUSES, PALETTE } from "@/lib/constants";
 import { projectKeyFrom } from "@/lib/utils";
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
  */
 export const GET = handler(async (caller) => {
   const projects = await db.project.findMany({
-    where: { workspaceId: caller.workspaceId, archived: false },
+    where: { ...(await escopoDoChamador(caller)), archived: false },
     include: {
       statuses: { orderBy: { order: "asc" }, select: { name: true, category: true } },
       sprints: {
@@ -42,6 +43,8 @@ export const GET = handler(async (caller) => {
 
 /** Cria um projeto com o conjunto de status padrão. */
 export const POST = handler(async (caller, request) => {
+  // convidado trabalha dentro de um projeto, não cria projeto novo
+  await exigirMembroDoChamador(caller);
   const { name, description, key } = await readJson<{
     name: string;
     description?: string;

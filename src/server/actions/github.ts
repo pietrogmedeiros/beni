@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { filtroDeProjetos, exigirMembroDoWorkspace } from "@/server/escopo";
 import { currentWorkspace } from "@/lib/auth";
 import { decryptSecret, encryptSecret, maskSecret } from "@/lib/crypto";
 import {
@@ -26,7 +27,7 @@ async function workspaceToken() {
 async function assertProject(projectId: string) {
   const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
-    where: { id: projectId, workspaceId: workspace.id },
+    where: { id: projectId, ...(await filtroDeProjetos()) },
   });
   if (!project) throw new Error("Projeto não encontrado");
   return project;
@@ -35,10 +36,12 @@ async function assertProject(projectId: string) {
 /* ————— Token do workspace ————— */
 
 export async function getGithubTokenPreview() {
+  await exigirMembroDoWorkspace();
   return maskSecret(await workspaceToken());
 }
 
 export async function setGithubToken(token: string | null) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   const value = token?.trim();
 
@@ -54,6 +57,7 @@ export async function setGithubToken(token: string | null) {
 /* ————— Repositórios ————— */
 
 export async function connectRepository(projectId: string, input: string) {
+  await exigirMembroDoWorkspace();
   await assertProject(projectId);
 
   const parsed = parseRepoInput(input);
@@ -103,9 +107,10 @@ export async function connectRepository(projectId: string, input: string) {
 }
 
 export async function disconnectRepository(repoId: string) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   const repo = await db.githubRepo.findFirst({
-    where: { id: repoId, project: { workspaceId: workspace.id } },
+    where: { id: repoId, project: await filtroDeProjetos() },
   });
   if (!repo) throw new Error("Repositório não encontrado");
   await db.githubRepo.delete({ where: { id: repoId } });
@@ -114,9 +119,10 @@ export async function disconnectRepository(repoId: string) {
 
 /** Dados ao vivo do repositório (estrelas, issues abertas, último push). */
 export async function repositoryStats(repoId: string) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   const repo = await db.githubRepo.findFirst({
-    where: { id: repoId, project: { workspaceId: workspace.id } },
+    where: { id: repoId, project: await filtroDeProjetos() },
   });
   if (!repo) throw new Error("Repositório não encontrado");
 
@@ -132,13 +138,14 @@ export async function repositoryStats(repoId: string) {
 async function assertTask(taskId: string) {
   const workspace = await currentWorkspace();
   const task = await db.task.findFirst({
-    where: { id: taskId, project: { workspaceId: workspace.id } },
+    where: { id: taskId, project: await filtroDeProjetos() },
   });
   if (!task) throw new Error("Tarefa não encontrada");
   return task;
 }
 
 export async function listRepositoriesForTask(taskId: string) {
+  await exigirMembroDoWorkspace();
   const task = await assertTask(taskId);
   const repos = await db.githubRepo.findMany({
     where: { projectId: task.projectId },
@@ -158,7 +165,7 @@ export async function listOpenItemsForRepo(
 ): Promise<GithubItem[]> {
   const workspace = await currentWorkspace();
   const repo = await db.githubRepo.findFirst({
-    where: { id: repoId, project: { workspaceId: workspace.id } },
+    where: { id: repoId, project: await filtroDeProjetos() },
   });
   if (!repo) throw new Error("Repositório não encontrado");
 
@@ -175,6 +182,8 @@ export async function linkGithubItem(input: {
   repoId: string;
   reference: string;
 }) {
+  await exigirMembroDoWorkspace();
+  await exigirMembroDoWorkspace();
   const task = await assertTask(input.taskId);
   const repo = await db.githubRepo.findFirst({
     where: { id: input.repoId, projectId: task.projectId },
@@ -242,9 +251,10 @@ export async function linkGithubItem(input: {
 }
 
 export async function unlinkGithubItem(linkId: string) {
+  await exigirMembroDoWorkspace();
   const workspace = await currentWorkspace();
   const link = await db.taskGithubLink.findFirst({
-    where: { id: linkId, task: { project: { workspaceId: workspace.id } } },
+    where: { id: linkId, task: { project: await filtroDeProjetos() } },
   });
   if (!link) return;
   await db.taskGithubLink.delete({ where: { id: linkId } });
@@ -253,6 +263,7 @@ export async function unlinkGithubItem(linkId: string) {
 
 /** Reconsulta o GitHub e atualiza título e estado dos itens vinculados. */
 export async function syncGithubLinks(taskId: string) {
+  await exigirMembroDoWorkspace();
   const task = await assertTask(taskId);
   const links = await db.taskGithubLink.findMany({
     where: { taskId: task.id },
