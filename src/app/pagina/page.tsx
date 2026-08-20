@@ -10,6 +10,7 @@ import {
   GitBranch,
   KanbanSquare,
   Layers,
+  Link2,
   List,
   MessageSquare,
   NotebookPen,
@@ -22,7 +23,9 @@ import {
 } from "lucide-react";
 import { BeniLogo, BeniMascote } from "@/components/logo";
 import { DOWNLOAD_MAC } from "@/lib/constants";
+import { withBase } from "@/lib/base-path";
 import { cn } from "@/lib/utils";
+import "./efeitos.css";
 
 /**
  * Página de apresentação do Beni.
@@ -32,17 +35,26 @@ import { cn } from "@/lib/utils";
  * levam a lugar nenhum. Precisa também estar em `OPEN_PATHS` no `proxy.ts`,
  * senão o visitante é mandado para o login antes de ler a primeira linha.
  *
- * Tudo aqui é renderizado no servidor. A página não tem estado, e um trecho de
- * JavaScript só para animar rolagem custaria mais do que entrega numa máquina
- * com CPU compartilhada e 220 ms de distância.
+ * As telas são **capturas reais** do app, geradas por
+ * `~/frete-scraper/_beni_capturas.mjs` com os dados de demonstração. Descrever
+ * recurso em cartão de texto é barato e não convence; mostrar a tela convence
+ * e envelhece junto com o produto, que é o preço certo a pagar. O script
+ * esconde a aba de Cobranças antes de capturar: é área de administrador e não
+ * entra em página pública.
+ *
+ * Tudo é renderizado no servidor e não há JavaScript próprio. A página não tem
+ * estado, e script só para animar rolagem custaria mais do que entrega num
+ * servidor de CPU compartilhada a 220 ms de distância.
  */
 
-const TITULO = "Beni — do backlog à aprovação do cliente";
+const TITULO = "Beni: do backlog à aprovação do cliente";
 const RESUMO =
   "Gerenciador de projetos com sete visões da mesma tarefa, anotações e conversas junto do trabalho, e aprovação do cliente por link, sem conta.";
 
 export const metadata: Metadata = {
-  title: TITULO,
+  // `absolute` porque o layout raiz acrescenta " · Beni" a todo título, e o
+  // nome já está aqui dentro: sem isto a aba vira "Beni ... · Beni"
+  title: { absolute: TITULO },
   description: RESUMO,
   openGraph: {
     title: TITULO,
@@ -54,13 +66,55 @@ export const metadata: Metadata = {
 };
 
 const VISOES = [
-  { icon: List, nome: "Lista", nota: "Tudo em ordem, com filtro e agrupamento." },
-  { icon: KanbanSquare, nome: "Quadro", nota: "Arrasta entre as colunas do time." },
-  { icon: GanttChartSquare, nome: "Gantt", nota: "Prazos e dependências no tempo." },
-  { icon: Layers, nome: "Backlog", nota: "O que ainda não entrou no sprint." },
-  { icon: CalendarDays, nome: "Calendário", nota: "O mês pelo vencimento." },
-  { icon: PieChart, nome: "Painel", nota: "Onde o projeto está agora." },
-  { icon: NotebookPen, nome: "Anotações", nota: "A decisão junto da tarefa." },
+  { icon: List, nome: "Lista" },
+  { icon: KanbanSquare, nome: "Quadro" },
+  { icon: GanttChartSquare, nome: "Gantt" },
+  { icon: Layers, nome: "Backlog" },
+  { icon: CalendarDays, nome: "Calendário" },
+  { icon: PieChart, nome: "Painel" },
+  { icon: NotebookPen, nome: "Anotações" },
+];
+
+const ETAPAS = [
+  {
+    numero: "01",
+    titulo: "Quadro",
+    nota: "As colunas do time, do backlog ao revisado. Arrasta o cartão e o status muda para todo mundo.",
+    captura: "quadro",
+    alt: "Quadro kanban de um projeto no Beni",
+  },
+  {
+    numero: "02",
+    titulo: "Gantt",
+    nota: "A linha do tempo do projeto, com o que trava o quê. Dá para mandar um link de leitura a quem só quer acompanhar o prazo.",
+    captura: "gantt",
+    alt: "Gráfico de Gantt de um projeto no Beni",
+  },
+  {
+    numero: "03",
+    titulo: "Lista",
+    nota: "Para quem executa: tudo em ordem, editável na própria linha, agrupado do jeito que fizer sentido no dia.",
+    captura: "lista",
+    alt: "Visão de lista de tarefas no Beni",
+  },
+  {
+    numero: "04",
+    titulo: "Painel",
+    nota: "Onde o projeto está agora, sem alguém precisar montar relatório na véspera da reunião.",
+    captura: "painel",
+    alt: "Painel com o andamento do projeto no Beni",
+  },
+];
+
+const FERRAMENTAS_MCP = [
+  "beni_meu_dia",
+  "beni_tarefas",
+  "beni_criar_tarefa",
+  "beni_atualizar_tarefa",
+  "beni_buscar",
+  "beni_comentar",
+  "beni_projetos",
+  "beni_criar_tarefas_em_massa",
 ];
 
 const EXTRAS = [
@@ -76,18 +130,17 @@ export default function PaginaDoBeni() {
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <Cabecalho />
-
       <main className="flex-1">
         <Hero />
+        <Retrato />
         <Visoes />
         <Aprovacao />
-        <Claude />
+        <ConectorDoClaude />
         <EscritaEConversa />
         <AppDeMac />
         <TambemTem />
         <ChamadaFinal />
       </main>
-
       <Rodape />
     </div>
   );
@@ -122,12 +175,11 @@ function Cabecalho() {
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* clarão quente atrás do texto — puro CSS, sem imagem para baixar */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 -top-40 h-[28rem] bg-[radial-gradient(45rem_22rem_at_50%_0%,var(--color-primary)/0.18,transparent)]"
       />
-      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-5 py-16 sm:py-24 lg:grid-cols-[1.15fr_1fr]">
+      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-10 px-5 pb-10 pt-16 sm:pt-24 lg:grid-cols-[1.15fr_0.85fr]">
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary-strong">
             <Sparkles className="size-3.5" />
@@ -148,7 +200,7 @@ function Hero() {
 
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:text-base">
             O Beni guarda as tarefas, as decisões e as conversas do projeto no
-            mesmo lugar. Cada projeto tem sete jeitos de ser olhado — e quando
+            mesmo lugar. Cada projeto tem sete jeitos de ser olhado, e quando
             chega a hora de validar, o cliente aprova por um link, sem criar
             conta e sem ver a sua cozinha.
           </p>
@@ -178,11 +230,11 @@ function Hero() {
         <div className="relative flex justify-center lg:justify-end">
           <div
             aria-hidden
-            className="absolute inset-0 m-auto size-64 rounded-full bg-primary/15 blur-3xl sm:size-80"
+            className="absolute inset-0 m-auto size-56 rounded-full bg-primary/15 blur-3xl sm:size-72"
           />
           <BeniMascote
-            pose="apresentando"
-            className="relative w-52 drop-shadow-xl sm:w-64 lg:w-72"
+            pose="beni"
+            className="flutua relative w-44 drop-shadow-xl sm:w-56 lg:w-60"
           />
         </div>
       </div>
@@ -190,18 +242,79 @@ function Hero() {
   );
 }
 
+/** A tela do produto logo abaixo da chamada: prova antes de qualquer promessa. */
+function Retrato() {
+  return (
+    <section className="relative">
+      <div className="mx-auto w-full max-w-6xl px-5 pb-16 sm:pb-20">
+        <div className="levantar">
+          <Moldura
+            src="quadro"
+            alt="Quadro kanban de um projeto no Beni"
+            prioridade
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Moldura das capturas.
+ *
+ * `img` simples, e não `next/image`: o otimizador reprocessaria a imagem a cada
+ * tamanho pedido, e num servidor de CPU compartilhada isso é trabalho repetido
+ * para entregar sempre o mesmo arquivo. As medidas ficam no atributo para o
+ * navegador reservar o espaço e a página não pular ao carregar.
+ */
+function Moldura({
+  src,
+  alt,
+  prioridade = false,
+  className,
+}: {
+  src: string;
+  alt: string;
+  prioridade?: boolean;
+  className?: string;
+}) {
+  return (
+    <figure
+      className={cn(
+        "moldura overflow-hidden rounded-2xl border bg-card shadow-lg shadow-black/5",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-1.5 border-b bg-muted/40 px-3 py-2">
+        <span className="size-2.5 rounded-full bg-red-400/70" />
+        <span className="size-2.5 rounded-full bg-amber-400/70" />
+        <span className="size-2.5 rounded-full bg-emerald-400/70" />
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={withBase(`/pagina/${src}.webp`)}
+        alt={alt}
+        width={2400}
+        height={1467}
+        loading={prioridade ? "eager" : "lazy"}
+        className="block w-full"
+      />
+    </figure>
+  );
+}
+
 function Secao({
-  id,
   className,
   children,
 }: {
-  id?: string;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className={cn("border-t border-border/60", className)}>
-      <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">{children}</div>
+    <section className={cn("border-t border-border/60", className)}>
+      <div className="revelar mx-auto w-full max-w-6xl px-5 py-16 sm:py-20">
+        {children}
+      </div>
     </section>
   );
 }
@@ -232,36 +345,76 @@ function Titulo({
   );
 }
 
+/**
+ * As quatro visões que se sucedem no palco.
+ *
+ * O desenho é o mesmo nos dois mundos: cada etapa é um bloco com texto de um
+ * lado e captura do outro. Sem animação de rolagem, os quatro ficam
+ * empilhados e a seção vira uma lista de recursos comum, completa e legível.
+ * Com animação, eles passam a ocupar o mesmo lugar e trocam conforme se rola.
+ * É a mesma marcação servindo aos dois casos, e é por isso que a falta de
+ * suporte não deixa buraco.
+ */
 function Visoes() {
   return (
-    <Secao>
-      <Titulo
-        sobre="Uma tarefa, sete ângulos"
-        descricao="A mesma informação, apresentada como cada pessoa precisa ver. Quem executa quer a lista; quem coordena quer o Gantt; quem cobra quer o painel. Ninguém precisa manter duas ferramentas em dia."
-      >
-        Trocar de visão não é trocar de ferramenta
-      </Titulo>
-
-      {/* sete cartões numa grade de quatro deixariam um buraco na última linha;
-          em linha flexível centralizada os três de baixo ficam alinhados ao
-          meio e o desenho parece intencional, que é o que ele é */}
-      <div className="mt-10 flex flex-wrap justify-center gap-3">
-        {VISOES.map((v) => (
-          <div
-            key={v.nome}
-            className="w-full rounded-2xl border bg-card p-4 transition hover:border-primary/40 sm:w-[calc(50%-0.375rem)] lg:w-[calc(25%-0.5625rem)]"
+    <section className="border-t border-border/60">
+      <div className="mx-auto w-full max-w-6xl px-5 pt-16 sm:pt-20">
+        <div className="revelar">
+          <Titulo
+            sobre="Uma tarefa, sete ângulos"
+            descricao="A mesma informação, apresentada como cada pessoa precisa ver. Quem executa quer a lista, quem coordena quer o Gantt, quem cobra quer o painel. Ninguém precisa manter duas ferramentas em dia."
           >
-            <span className="flex size-9 items-center justify-center rounded-xl bg-primary/12 text-primary-strong">
-              <v.icon className="size-4.5" />
+            Trocar de visão não é trocar de ferramenta
+          </Titulo>
+        </div>
+
+        <div className="cascata mt-8 flex flex-wrap gap-2">
+          {VISOES.map((v) => (
+            <span
+              key={v.nome}
+              className="etiqueta inline-flex items-center gap-2 rounded-full border bg-card px-3.5 py-1.5 text-sm font-medium"
+            >
+              <v.icon className="size-4 text-primary-strong" />
+              {v.nome}
             </span>
-            <p className="mt-3 text-sm font-semibold">{v.nome}</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {v.nota}
-            </p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </Secao>
+
+      <div className="palco">
+        <div className="palco-fixo">
+          <div className="mx-auto w-full max-w-6xl px-5 py-12">
+            <div className="flex gap-6 sm:gap-8">
+              {/* trilho de progresso: existe só quando o palco existe */}
+              <div className="palco-trilho relative w-0.5 shrink-0 overflow-hidden rounded-full bg-border">
+                <span className="palco-progresso absolute inset-x-0 top-0 h-full rounded-full bg-primary" />
+              </div>
+
+              <div className="palco-pilha min-w-0 flex-1">
+                {ETAPAS.map((e) => (
+                  <div key={e.captura} className="palco-etapa">
+                    <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,0.85fr)_1.6fr] lg:gap-10">
+                      <div>
+                        <p className="font-mono text-xs text-primary-strong">
+                          {e.numero}
+                        </p>
+                        <p className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">
+                          {e.titulo}
+                        </p>
+                        <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+                          {e.nota}
+                        </p>
+                      </div>
+                      <Moldura src={e.captura} alt={e.alt} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -272,14 +425,14 @@ function Aprovacao() {
         <div>
           <Titulo
             sobre="Aprovação"
-            descricao="Você manda um link. Ele abre, lê o que precisa validar, aprova ou pede ajuste — e nada disso exige conta, senha ou convite."
+            descricao="Você manda um link. Ele abre, lê o que precisa validar, aprova ou pede ajuste, e nada disso exige conta, senha ou convite."
           >
             O cliente aprova sem entrar no seu time
           </Titulo>
 
           <ul className="mt-7 space-y-3.5">
             {[
-              "Só o nome da tarefa e o que ele precisa validar. A descrição interna não viaja no link — combinado de equipe não é assunto de cliente.",
+              "Só o nome da tarefa e o que ele precisa validar. A descrição interna não viaja no link, porque combinado de equipe não é assunto de cliente.",
               "A resposta volta para dentro da tarefa, com data e quem aprovou.",
               "Serve também para o Gantt: um link de leitura para acompanhar o prazo.",
             ].map((t) => (
@@ -297,13 +450,13 @@ function Aprovacao() {
   );
 }
 
-/** Amostra do que o cliente vê. Desenhada em HTML — não é captura de tela. */
+/** Amostra do que o cliente vê. Desenhada em HTML, não é captura de tela. */
 function MockAprovacao() {
   return (
-    <div className="relative">
+    <div>
       <div className="rounded-2xl border bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2 border-b pb-3">
-          <BeniLogo className="scale-90 origin-left" />
+          <BeniLogo className="origin-left scale-90" />
           <span className="ml-auto rounded-md bg-amber-500/12 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
             Aguardando você
           </span>
@@ -313,7 +466,7 @@ function MockAprovacao() {
           Tarefa
         </p>
         <p className="mt-1 text-sm font-semibold">
-          Landing page — versão para revisão
+          Landing page, versão para revisão
         </p>
 
         <p className="mt-4 text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -341,22 +494,57 @@ function MockAprovacao() {
   );
 }
 
-function Claude() {
+function ConectorDoClaude() {
   return (
     <Secao>
-      <div className="grid items-center gap-10 lg:grid-cols-2">
-        <div className="order-2 lg:order-1">
+      <Titulo
+        sobre="Conector do Claude (MCP)"
+        descricao="O Beni fala MCP, o protocolo que o Claude usa para conversar com ferramentas de fora. Conectado, ele lê e escreve no seu backlog: você pergunta o que vence hoje, manda abrir tarefa, pede um resumo do projeto, e a resposta sai do dado de verdade."
+      >
+        Seu backlog responde quando você pergunta
+      </Titulo>
+
+      <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1fr]">
+        <div className="rounded-2xl border bg-card p-6">
+          <p className="text-sm font-semibold">Como ligar, em três passos</p>
+          <ol className="mt-5 space-y-5">
+            <Passo n={1} titulo="Crie uma chave de acesso">
+              Dentro do Beni, em Configurações, na seção de chaves de API. Ela
+              aparece uma vez só, então copie na hora.
+            </Passo>
+            <Passo n={2} titulo="Adicione o conector no Claude">
+              Em Configurações, Conectores, Adicionar conector personalizado.
+              O endereço é:
+              <code className="mt-2 block rounded-lg bg-muted px-3 py-2 font-mono text-[12px] break-all">
+                https://app.benicio.space/api/mcp
+              </code>
+            </Passo>
+            <Passo n={3} titulo="Pergunte">
+              &quot;O que vence hoje?&quot;, &quot;abre uma tarefa de bug no
+              Plataforma Web&quot;, &quot;o que está parado esperando
+              aprovação?&quot;.
+            </Passo>
+          </ol>
+          <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
+            No Claude Code funciona igual, apontando para o mesmo endereço. A
+            chave pode ir no cabeçalho <code className="font-mono">Authorization</code>{" "}
+            ou como <code className="font-mono">?token=</code> na própria URL,
+            para os clientes que não deixam configurar cabeçalho.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-6">
           <div className="rounded-2xl border bg-card p-5 font-mono text-[13px] leading-relaxed shadow-sm">
             <p className="text-muted-foreground">
-              <span className="text-primary-strong">você</span> — o que eu tenho
+              <span className="text-primary-strong">você</span> o que eu tenho
               para hoje?
             </p>
             <p className="mt-3">
-              Três tarefas vencem hoje no Plataforma Web. A de login está
-              parada há quatro dias esperando aprovação.
+              Três tarefas vencem hoje no Plataforma Web. A de login está parada
+              há quatro dias esperando aprovação.
             </p>
             <p className="mt-4 text-muted-foreground">
-              <span className="text-primary-strong">você</span> — abre uma tarefa
+              <span className="text-primary-strong">você</span> abre uma tarefa
               para o bug do relatório
             </p>
             <p className="mt-3">
@@ -364,22 +552,51 @@ function Claude() {
               prioridade alta, no seu nome.
             </p>
           </div>
-        </div>
 
-        <div className="order-1 lg:order-2">
-          <Titulo
-            sobre="Conector do Claude"
-            descricao="O Beni fala MCP. Conecte no claude.ai ou no Claude Code e converse com o backlog em vez de navegar por ele — criar tarefa, procurar, comentar, saber o que vence hoje."
-          >
-            Seu backlog responde quando você pergunta
-          </Titulo>
-          <p className="mt-5 text-sm text-muted-foreground">
-            Também dá para chegar pela API, com token por workspace, quando o
-            que você quer é automatizar em vez de conversar.
-          </p>
+          <div className="rounded-2xl border bg-card p-5">
+            <p className="text-sm font-semibold">O que ele consegue fazer</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {FERRAMENTAS_MCP.map((f) => (
+                <span
+                  key={f}
+                  className="rounded-md bg-muted px-2 py-1 font-mono text-[11px] text-muted-foreground"
+                >
+                  {f}
+                </span>
+              ))}
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Doze ferramentas ao todo, entre ler, criar, atualizar e comentar.
+              A chave vale por workspace e pode ser revogada a qualquer momento.
+            </p>
+          </div>
         </div>
       </div>
     </Secao>
+  );
+}
+
+function Passo({
+  n,
+  titulo,
+  children,
+}: {
+  n: number;
+  titulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-4">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-semibold text-primary-strong">
+        {n}
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{titulo}</p>
+        <div className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          {children}
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -388,35 +605,49 @@ function EscritaEConversa() {
     <Secao className="bg-muted/30">
       <Titulo
         sobre="Contexto"
-        descricao="A decisão que explica a tarefa costuma morrer num chat de fora. No Beni ela fica ao lado do trabalho — e continua lá quando alguém perguntar, seis meses depois, por que foi feito assim."
+        descricao="A decisão que explica a tarefa costuma morrer num chat de fora. No Beni ela fica ao lado do trabalho, e continua lá quando alguém perguntar, seis meses depois, por que foi feito assim."
       >
         O porquê fica junto do quê
       </Titulo>
 
-      <div className="mt-10 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border bg-card p-6">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary-strong">
-            <NotebookPen className="size-5" />
-          </span>
-          <p className="mt-4 font-semibold">Anotações no projeto</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Ata de reunião, combinado com o cliente, rascunho de escopo. Com
-            link público quando alguém de fora precisa ler.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border bg-card p-6">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary-strong">
-            <MessageSquare className="size-5" />
-          </span>
-          <p className="mt-4 font-semibold">Conversas por canal</p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Um canal por assunto, com menção e reação, dentro do mesmo lugar em
-            que o trabalho acontece.
-          </p>
-        </div>
+      <div className="cascata mt-10 grid gap-4 sm:grid-cols-3">
+        <Cartao
+          icone={NotebookPen}
+          titulo="Anotações no projeto"
+          nota="Ata de reunião, combinado com o cliente, rascunho de escopo."
+        />
+        <Cartao
+          icone={MessageSquare}
+          titulo="Conversas por canal"
+          nota="Um canal por assunto, com menção e reação, dentro do mesmo lugar."
+        />
+        <Cartao
+          icone={Link2}
+          titulo="Link público quando precisa"
+          nota="Anotação e Gantt viram link de leitura para quem está de fora."
+        />
       </div>
     </Secao>
+  );
+}
+
+function Cartao({
+  icone: Icone,
+  titulo,
+  nota,
+}: {
+  icone: typeof NotebookPen;
+  titulo: string;
+  nota: string;
+}) {
+  return (
+    <div className="rounded-2xl border bg-card p-6">
+      <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary-strong">
+        <Icone className="size-5" />
+      </span>
+      <p className="mt-4 font-semibold">{titulo}</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{nota}</p>
+    </div>
   );
 }
 
@@ -434,8 +665,8 @@ function AppDeMac() {
             </h2>
             <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
               Mesmo Beni, em janela própria. Assinado com certificado de
-              desenvolvedor e reconhecido pela Apple — abre no primeiro clique,
-              sem aviso de programa não identificado.
+              desenvolvedor e reconhecido pela Apple, então abre no primeiro
+              clique, sem aviso de programa não identificado.
             </p>
 
             <a
@@ -451,7 +682,7 @@ function AppDeMac() {
           </div>
 
           <div className="flex justify-center lg:justify-end">
-            <BeniMascote pose="andando" className="w-40 drop-shadow-lg sm:w-52" />
+            <BeniMascote pose="beni" className="w-32 drop-shadow-lg sm:w-40" />
           </div>
         </div>
       </div>
@@ -464,7 +695,7 @@ function TambemTem() {
     <Secao className="bg-muted/30">
       <Titulo sobre="E ainda">O resto que você espera de uma ferramenta séria</Titulo>
 
-      <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="cascata mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {EXTRAS.map((e) => (
           <div key={e.nome} className="flex gap-3 rounded-2xl border bg-card p-4">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary-strong">
@@ -492,7 +723,7 @@ function ChamadaFinal() {
           className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(30rem_12rem_at_50%_0%,var(--color-primary)/0.22,transparent)]"
         />
         <div className="relative">
-          <BeniMascote pose="prancheta" pequeno className="mx-auto w-24" />
+          <BeniMascote pose="beni" pequeno className="mx-auto w-20" />
           <h2 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
             Comece com um projeto e veja se serve
           </h2>
@@ -517,7 +748,7 @@ function Rodape() {
   return (
     <footer className="border-t border-border/60">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-5 py-8 sm:flex-row sm:items-center">
-        <BeniLogo className="scale-90 origin-left" />
+        <BeniLogo className="origin-left scale-90" />
         <p className="text-xs text-muted-foreground sm:ml-4">
           Gestão de projetos, tarefas e backlog.
         </p>

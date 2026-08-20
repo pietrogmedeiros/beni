@@ -1,0 +1,300 @@
+/**
+ * Movimento da página de apresentação.
+ *
+ * Tudo em CSS, sem uma linha de JavaScript. As animações são amarradas à
+ * rolagem por `animation-timeline`, então quem faz o trabalho é o compositor
+ * do navegador, não a linha principal. A alternativa comum seria um
+ * `IntersectionObserver`, que custaria script e uma volta de renderização a
+ * cada elemento que aparece.
+ *
+ * Duas proteções, e as duas importam mais que o efeito:
+ *
+ * `@supports` garante que em navegador sem suporte nada disso é aplicado, e a
+ * página cai num desenho estático completo. Efeito de entrada que não roda
+ * deixa a tela **em branco**, o que é muito pior do que não ter efeito. Por
+ * isso o padrão de cada regra aqui é o estado final, e o movimento é o que se
+ * acrescenta por cima.
+ *
+ * `prefers-reduced-motion` respeita quem pediu ao sistema para reduzir
+ * movimento. Para essas pessoas movimento não é enfeite, é desconforto.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Entrada dos blocos                                                          */
+/* -------------------------------------------------------------------------- */
+
+@keyframes beni-revelar {
+  from {
+    opacity: 0;
+    transform: translateY(1.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/**
+ * O retrato do produto se levanta.
+ *
+ * Começa deitado para trás, como se estivesse sobre a mesa, e endireita
+ * conforme entra na tela. É um efeito só, num elemento só, e é o que dá a
+ * impressão de objeto em vez de imagem colada.
+ */
+@keyframes beni-levantar {
+  from {
+    opacity: 0;
+    transform: perspective(1400px) rotateX(14deg) scale(0.94) translateY(2.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1400px) rotateX(0deg) scale(1) translateY(0);
+  }
+}
+
+@keyframes beni-flutua {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.75rem);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Palco: a tela do produto troca conforme a rolagem                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Três conjuntos de quadros para o mesmo palco, porque as pontas se comportam
+ * diferente do meio: a primeira etapa já **começa** visível (senão o palco
+ * abre vazio) e a última **termina** visível (senão ele fecha vazio). Só as do
+ * meio entram e saem.
+ */
+@keyframes beni-etapa-primeira {
+  0%,
+  55% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-1.25rem) scale(0.97);
+  }
+}
+
+@keyframes beni-etapa {
+  0% {
+    opacity: 0;
+    transform: translateY(1.25rem) scale(0.97);
+  }
+  22%,
+  78% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-1.25rem) scale(0.97);
+  }
+}
+
+@keyframes beni-etapa-ultima {
+  0% {
+    opacity: 0;
+    transform: translateY(1.25rem) scale(0.97);
+  }
+  45%,
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/** A barra de progresso ao lado das etapas, preenchendo com a rolagem. */
+@keyframes beni-progresso {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/**
+ * Desenho estático do palco: é o que vale sem suporte a animação de rolagem, e
+ * também com movimento reduzido. As quatro etapas viram uma lista comum, uma
+ * embaixo da outra, com tudo legível.
+ */
+.palco-etapa {
+  margin-bottom: 2.5rem;
+}
+
+.palco-etapa:last-child {
+  margin-bottom: 0;
+}
+
+.palco-trilho,
+.palco-progresso {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .revelar {
+      animation: beni-revelar linear both;
+      animation-timeline: view();
+      /* termina cedo, com 30% da tela percorrida: passar disso faz a pessoa
+         esperar a página se montar */
+      animation-range: entry 5% cover 30%;
+    }
+
+    /* atraso em cascata: os filhos entram um atrás do outro, e o conjunto
+       ganha ritmo em vez de piscar de uma vez */
+    .cascata > * {
+      animation: beni-revelar linear both;
+      animation-timeline: view();
+    }
+    .cascata > *:nth-child(1) {
+      animation-range: entry 0% cover 22%;
+    }
+    .cascata > *:nth-child(2) {
+      animation-range: entry 3% cover 26%;
+    }
+    .cascata > *:nth-child(3) {
+      animation-range: entry 6% cover 30%;
+    }
+    .cascata > *:nth-child(4) {
+      animation-range: entry 9% cover 34%;
+    }
+    .cascata > *:nth-child(5) {
+      animation-range: entry 12% cover 38%;
+    }
+    .cascata > *:nth-child(6) {
+      animation-range: entry 15% cover 42%;
+    }
+    .cascata > *:nth-child(7) {
+      animation-range: entry 18% cover 46%;
+    }
+
+    .levantar {
+      animation: beni-levantar linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 45%;
+      transform-origin: center 80%;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* O palco, quando o navegador sabe animar por rolagem                     */
+    /* ---------------------------------------------------------------------- */
+
+    .palco {
+      /* alto de propósito: é essa altura que vira o "tempo" das quatro etapas */
+      min-height: 300vh;
+      view-timeline-name: --etapas;
+      view-timeline-axis: block;
+    }
+
+    .palco-fixo {
+      position: sticky;
+      top: 0;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+    }
+
+    /* as quatro etapas passam a ocupar o mesmo lugar, uma sobre a outra */
+    .palco-pilha {
+      position: relative;
+    }
+
+    .palco-etapa {
+      margin-bottom: 0;
+    }
+
+    .palco-etapa:not(:first-child) {
+      position: absolute;
+      inset: 0;
+    }
+
+    .palco-etapa {
+      animation: beni-etapa linear both;
+      animation-timeline: --etapas;
+      will-change: opacity, transform;
+    }
+
+    /* as faixas repartem a janela em que o palco fica preso (por volta de 25%
+       a 75% do percurso), com sobreposição nas bordas: é a sobreposição que
+       faz uma etapa cruzar com a outra em vez de piscar */
+    .palco-etapa:nth-child(1) {
+      animation-name: beni-etapa-primeira;
+      animation-range: cover 25% cover 41%;
+    }
+    .palco-etapa:nth-child(2) {
+      animation-range: cover 36% cover 54%;
+    }
+    .palco-etapa:nth-child(3) {
+      animation-range: cover 49% cover 67%;
+    }
+    .palco-etapa:nth-child(4) {
+      animation-name: beni-etapa-ultima;
+      animation-range: cover 62% cover 78%;
+    }
+
+    /* trilho de progresso: só existe quando o palco existe */
+    .palco-trilho {
+      display: block;
+    }
+
+    .palco-progresso {
+      display: block;
+      transform-origin: top;
+      animation: beni-progresso linear both;
+      animation-timeline: --etapas;
+      animation-range: cover 25% cover 78%;
+    }
+  }
+
+  .flutua {
+    animation: beni-flutua 7s ease-in-out infinite;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Reações ao ponteiro                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * As capturas reagem ao ponteiro: sobem um pouco e ganham sombra, o suficiente
+ * para parecer objeto e convidar o olhar. Só onde existe ponteiro de verdade,
+ * porque no celular o estado de hover fica **grudado** depois do toque e a
+ * imagem ficaria levantada sem motivo.
+ */
+.moldura {
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .moldura:hover {
+    transform: translateY(-6px);
+    box-shadow:
+      0 24px 50px -12px rgb(0 0 0 / 0.18),
+      0 8px 16px -8px rgb(0 0 0 / 0.1);
+  }
+}
+
+.etiqueta {
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .etiqueta:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-primary);
+  }
+}
