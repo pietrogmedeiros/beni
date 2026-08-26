@@ -9,12 +9,11 @@ import { filtroDeProjetos } from "@/server/escopo";
 import { withBase } from "@/lib/base-path";
 import { avisarDecisaoDeAprovacao } from "@/server/notify";
 import { registrarAcao } from "@/server/actions/telemetria";
-import { currentWorkspace, requireUser } from "@/lib/auth";
+import {requireUser } from "@/lib/auth";
 
 const APPROVAL_TTL_DAYS = 30;
 
 async function assertTask(taskId: string) {
-  const workspace = await currentWorkspace();
   const task = await db.task.findFirst({
     where: { id: taskId, project: await filtroDeProjetos() },
   });
@@ -79,7 +78,6 @@ export async function requestApproval(input: {
 }
 
 export async function cancelApproval(approvalId: string) {
-  const workspace = await currentWorkspace();
   const approval = await db.approval.findFirst({
     where: { id: approvalId, task: { project: await filtroDeProjetos() } },
   });

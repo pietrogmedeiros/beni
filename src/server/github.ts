@@ -189,3 +189,46 @@ export async function listOpenItems(
   );
   return data.map(toItem);
 }
+
+export type RepoDaConta = {
+  fullName: string;
+  descricao: string | null;
+  privado: boolean;
+  atualizadoEm: string | null;
+};
+
+/**
+ * Repositórios que o token alcança.
+ *
+ * Existe para a pessoa **escolher** em vez de digitar `dono/repositório` de
+ * memória. Digitar erra: o nome no GitHub raramente é o nome que se fala, e o
+ * erro só aparece depois de salvar.
+ *
+ * `affiliation` inclui organização de propósito: quase todo repositório de
+ * trabalho está numa, e sem isso a lista viria só com os pessoais, o que
+ * pareceria que o token não funcionou.
+ *
+ * Uma página de 100, ordenada pelo que mexeu por último. Paginar tudo custaria
+ * várias chamadas para um seletor em que ninguém rola até o fim; quem tiver
+ * mais que isso continua podendo digitar o nome à mão.
+ */
+export async function listarReposDaConta(token: string): Promise<RepoDaConta[]> {
+  const dados = await gh<
+    {
+      full_name: string;
+      description: string | null;
+      private: boolean;
+      pushed_at: string | null;
+    }[]
+  >(
+    "/user/repos?per_page=100&sort=pushed&affiliation=owner,collaborator,organization_member",
+    token,
+  );
+
+  return dados.map((r) => ({
+    fullName: r.full_name,
+    descricao: r.description,
+    privado: r.private,
+    atualizadoEm: r.pushed_at,
+  }));
+}

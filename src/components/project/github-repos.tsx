@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -16,7 +16,9 @@ import { Input } from "@/components/ui/input";
 import {
   connectRepository,
   disconnectRepository,
+  listarRepositoriosDaConta,
 } from "@/server/actions/github";
+import type { RepoDaConta } from "@/server/github";
 
 export type ProjectRepo = {
   id: string;
@@ -37,15 +39,46 @@ export function GithubRepos({
 }) {
   const router = useRouter();
   const [value, setValue] = useState("");
+  const [filtro, setFiltro] = useState("");
+  const [daConta, setDaConta] = useState<RepoDaConta[]>([]);
+  const [erroLista, setErroLista] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function connect() {
-    const input = value.trim();
+  // a lista chega depois da montagem: a tela de configurações não deve esperar
+  // uma chamada ao GitHub para aparecer
+  useEffect(() => {
+    let vivo = true;
+    listarRepositoriosDaConta().then((r) => {
+      if (!vivo) return;
+      setDaConta(r.repos);
+      setErroLista(r.erro);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
+  const jaVinculado = useMemo(
+    () => new Set(repositories.map((r) => `${r.owner}/${r.name}`.toLowerCase())),
+    [repositories],
+  );
+
+  const visiveis = useMemo(() => {
+    const q = filtro.trim().toLowerCase();
+    const lista = q
+      ? daConta.filter((r) => r.fullName.toLowerCase().includes(q))
+      : daConta;
+    return lista.slice(0, 40);
+  }, [daConta, filtro]);
+
+  function connect(escolhido?: string) {
+    const input = (escolhido ?? value).trim();
     if (!input) return;
     startTransition(async () => {
       try {
         const repo = await connectRepository(projectId, input);
         setValue("");
+        setFiltro("");
         toast.success(`${repo.owner}/${repo.name} vinculado ao projeto`);
         router.refresh();
       } catch (e) {
@@ -129,6 +162,58 @@ export function GithubRepos({
         </ul>
       )}
 
+      {/*
+        Escolher em vez de digitar. O nome no GitHub raramente é o nome que se
+        fala, e digitado errado o erro só aparece depois de salvar. A lista só
+        existe com token; sem ele, o campo de texto continua sendo o caminho.
+      */}
+      {daConta.length > 0 && (
+        <div className="mb-2">
+          <Input
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            placeholder="Procurar nos seus repositórios…"
+            className="h-9"
+          />
+          <ul className="thin-scrollbar mt-2 max-h-56 space-y-1 overflow-y-auto rounded-lg border p-1">
+            {visiveis.length === 0 ? (
+              <li className="px-2 py-3 text-center text-xs text-muted-foreground">
+                Nada com esse nome.
+              </li>
+            ) : (
+              visiveis.map((r) => (
+                <li key={r.fullName}>
+                  <button
+                    type="button"
+                    disabled={pending || jaVinculado.has(r.fullName.toLowerCase())}
+                    onClick={() => connect(r.fullName)}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[13px] transition hover:bg-muted disabled:opacity-40"
+                  >
+                    <span className="truncate font-medium">{r.fullName}</span>
+                    {r.privado && (
+                      <span className="shrink-0 rounded bg-muted px-1 text-[10px] text-muted-foreground">
+                        privado
+                      </span>
+                    )}
+                    {jaVinculado.has(r.fullName.toLowerCase()) && (
+                      <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                        já vinculado
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
+
+      {erroLista && (
+        <p className="mb-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs leading-relaxed">
+          {erroLista} Você ainda pode vincular digitando o nome abaixo.
+        </p>
+      )}
+
       <div className="flex gap-2">
         <Input
           value={value}
@@ -137,7 +222,7 @@ export function GithubRepos({
           placeholder="dono/repositório ou https://github.com/dono/repositório"
           className="h-9 flex-1"
         />
-        <Button variant="outline" disabled={pending || !value.trim()} onClick={connect}>
+        <Button variant="outline" disabled={pending || !value.trim()} onClick={() => connect()}>
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (

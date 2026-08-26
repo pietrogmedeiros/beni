@@ -238,7 +238,6 @@ export const getWorkspaceContext = cache(async () => {
 });
 
 export const getProject = cache(async (projectId: string) => {
-  const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
     where: { id: projectId, ...(await filtroDeProjetos()) },
     include: {
@@ -287,7 +286,6 @@ export const getProject = cache(async (projectId: string) => {
 });
 
 export const getProjectTasks = cache(async (projectId: string) => {
-  const workspace = await currentWorkspace();
   const tasks = await db.task.findMany({
     where: {
       projectId,
@@ -301,7 +299,6 @@ export const getProjectTasks = cache(async (projectId: string) => {
 });
 
 export const getTaskDetail = cache(async (taskId: string) => {
-  const workspace = await currentWorkspace();
   const task = await db.task.findFirst({
     where: { id: taskId, project: await filtroDeProjetos() },
     include: {
@@ -436,7 +433,6 @@ export type TaskDetail = NonNullable<Awaited<ReturnType<typeof getTaskDetail>>>;
 
 export const getMyTasks = cache(async () => {
   const user = await requireUser();
-  const workspace = await currentWorkspace();
   const tasks = await db.task.findMany({
     where: {
       assigneeId: user.id,
@@ -450,7 +446,6 @@ export const getMyTasks = cache(async () => {
 });
 
 export const getWorkspaceOverview = cache(async () => {
-  const workspace = await currentWorkspace();
   const user = await requireUser();
 
   const [tasks, projects, recentActivity] = await Promise.all([
@@ -567,7 +562,6 @@ export const searchTasks = cache(async (term: string) => {
 });
 
 export const getProjectDependencies = cache(async (projectId: string) => {
-  const workspace = await currentWorkspace();
   const deps = await db.dependency.findMany({
     where: { task: { projectId, project: await filtroDeProjetos() } },
     select: { taskId: true, dependsOnId: true },

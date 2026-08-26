@@ -4,13 +4,12 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { filtroDeProjetos } from "@/server/escopo";
-import { currentWorkspace, requireUser } from "@/lib/auth";
+import {requireUser } from "@/lib/auth";
 import { removeTaskFromIndex, syncTask } from "@/server/search";
 import { registrarAcao } from "@/server/actions/telemetria";
 import { avisarAtribuicao } from "@/server/notify";
 
 async function assertProject(projectId: string) {
-  const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
     where: { id: projectId, ...(await filtroDeProjetos()) },
   });
@@ -19,7 +18,6 @@ async function assertProject(projectId: string) {
 }
 
 async function assertTask(taskId: string) {
-  const workspace = await currentWorkspace();
   const task = await db.task.findFirst({
     where: { id: taskId, project: await filtroDeProjetos() },
     include: { status: true },
@@ -463,7 +461,6 @@ export async function bulkUpdateTasks(
     sprintId?: string | null;
   },
 ) {
-  const workspace = await currentWorkspace();
   const tasks = await db.task.findMany({
     where: { id: { in: taskIds }, project: await filtroDeProjetos() },
     select: { id: true },
@@ -486,7 +483,6 @@ export async function bulkUpdateTasks(
 }
 
 export async function bulkDeleteTasks(taskIds: string[]) {
-  const workspace = await currentWorkspace();
   await db.task.deleteMany({
     where: { id: { in: taskIds }, project: await filtroDeProjetos() },
   });

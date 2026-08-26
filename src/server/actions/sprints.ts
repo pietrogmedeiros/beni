@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { filtroDeProjetos, exigirMembroDoWorkspace } from "@/server/escopo";
-import { currentWorkspace } from "@/lib/auth";
+import { } from "@/lib/auth";
 
 async function assertProject(projectId: string) {
-  const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
     where: { id: projectId, ...(await filtroDeProjetos()) },
   });
@@ -15,7 +14,6 @@ async function assertProject(projectId: string) {
 }
 
 async function assertSprint(sprintId: string) {
-  const workspace = await currentWorkspace();
   const sprint = await db.sprint.findFirst({
     where: { id: sprintId, project: await filtroDeProjetos() },
   });

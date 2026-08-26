@@ -11,7 +11,6 @@ import { DEFAULT_STATUSES } from "@/lib/constants";
 import { projectKeyFrom } from "@/lib/utils";
 
 async function assertProjectAccess(projectId: string) {
-  const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
     where: { id: projectId, ...(await filtroDeProjetos()) },
   });

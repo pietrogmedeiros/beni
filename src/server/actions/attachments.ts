@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { filtroDeProjetos } from "@/server/escopo";
-import { currentWorkspace, requireUser } from "@/lib/auth";
+import {requireUser } from "@/lib/auth";
 import { kindOf, removeUpload } from "@/lib/uploads";
 
 export type AttachmentDTO = {
@@ -38,7 +38,6 @@ function toDTO(a: {
 }
 
 export async function listAttachments(taskId: string): Promise<AttachmentDTO[]> {
-  const workspace = await currentWorkspace();
   const rows = await db.attachment.findMany({
     where: { taskId, task: { project: await filtroDeProjetos() } },
     include: { uploadedBy: { select: { name: true } } },
@@ -49,7 +48,6 @@ export async function listAttachments(taskId: string): Promise<AttachmentDTO[]> 
 
 export async function deleteAttachment(id: string) {
   const user = await requireUser();
-  const workspace = await currentWorkspace();
 
   const attachment = await db.attachment.findFirst({
     where: { id, task: { project: await filtroDeProjetos() } },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { filtroDeProjetos } from "@/server/escopo";
-import { requireUser, currentWorkspace } from "@/lib/auth";
+import {requireUser } from "@/lib/auth";
 import {
   MAX_UPLOAD_BYTES,
   isAllowedType,
@@ -17,7 +17,6 @@ export const maxDuration = 60;
 /** Envio de anexo. Só quem tem sessão e acesso à tarefa consegue enviar. */
 export async function POST(request: Request) {
   const user = await requireUser();
-  const workspace = await currentWorkspace();
 
   const form = await request.formData();
   const taskId = String(form.get("taskId") ?? "");

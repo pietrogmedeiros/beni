@@ -12,7 +12,9 @@ import {
   listOpenItems,
   parseIssueInput,
   parseRepoInput,
+  listarReposDaConta,
   type GithubItem,
+  type RepoDaConta,
 } from "@/server/github";
 
 async function workspaceToken() {
@@ -25,7 +27,6 @@ async function workspaceToken() {
 }
 
 async function assertProject(projectId: string) {
-  const workspace = await currentWorkspace();
   const project = await db.project.findFirst({
     where: { id: projectId, ...(await filtroDeProjetos()) },
   });
@@ -108,7 +109,6 @@ export async function connectRepository(projectId: string, input: string) {
 
 export async function disconnectRepository(repoId: string) {
   await exigirMembroDoWorkspace();
-  const workspace = await currentWorkspace();
   const repo = await db.githubRepo.findFirst({
     where: { id: repoId, project: await filtroDeProjetos() },
   });
@@ -120,7 +120,6 @@ export async function disconnectRepository(repoId: string) {
 /** Dados ao vivo do repositório (estrelas, issues abertas, último push). */
 export async function repositoryStats(repoId: string) {
   await exigirMembroDoWorkspace();
-  const workspace = await currentWorkspace();
   const repo = await db.githubRepo.findFirst({
     where: { id: repoId, project: await filtroDeProjetos() },
   });
@@ -136,7 +135,6 @@ export async function repositoryStats(repoId: string) {
 /* ————— Vínculos com issues e pull requests ————— */
 
 async function assertTask(taskId: string) {
-  const workspace = await currentWorkspace();
   const task = await db.task.findFirst({
     where: { id: taskId, project: await filtroDeProjetos() },
   });
@@ -163,7 +161,6 @@ export async function listRepositoriesForTask(taskId: string) {
 export async function listOpenItemsForRepo(
   repoId: string,
 ): Promise<GithubItem[]> {
-  const workspace = await currentWorkspace();
   const repo = await db.githubRepo.findFirst({
     where: { id: repoId, project: await filtroDeProjetos() },
   });
@@ -252,7 +249,6 @@ export async function linkGithubItem(input: {
 
 export async function unlinkGithubItem(linkId: string) {
   await exigirMembroDoWorkspace();
-  const workspace = await currentWorkspace();
   const link = await db.taskGithubLink.findFirst({
     where: { id: linkId, task: { project: await filtroDeProjetos() } },
   });
@@ -299,4 +295,33 @@ export async function syncGithubLinks(taskId: string) {
 
   revalidatePath("/", "layout");
   return { updated };
+}
+
+
+/**
+ * Repositórios da conta ligada, para o seletor.
+ *
+ * Devolve lista vazia (e não erro) quando não há token: a tela já explica que
+ * sem token só dá para digitar o nome, e transformar isso em exceção encheria
+ * de vermelho uma situação que é só "ainda não configurou".
+ */
+export async function listarRepositoriosDaConta(): Promise<{
+  repos: RepoDaConta[];
+  erro: string | null;
+}> {
+  await exigirMembroDoWorkspace();
+  const token = await workspaceToken();
+  if (!token) return { repos: [], erro: null };
+
+  try {
+    return { repos: await listarReposDaConta(token), erro: null };
+  } catch (e) {
+    return {
+      repos: [],
+      erro:
+        e instanceof GithubError
+          ? e.message
+          : "Não consegui listar seus repositórios agora.",
+    };
+  }
 }

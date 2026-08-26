@@ -15,7 +15,6 @@ export type RecentTask = {
 
 /** Tarefas mexidas recentemente no workspace — alimenta o menu "Recentes". */
 export async function recentTasks(limit = 8): Promise<RecentTask[]> {
-  const workspace = await currentWorkspace();
   const tasks = await db.task.findMany({
     where: { archived: false, project: await filtroDeProjetos() },
     include: {
@@ -63,7 +62,6 @@ function chaveOverdue(taskId: string, dueDate: Date | null) {
 
 export async function notifications(): Promise<NotificationItem[]> {
   const user = await requireUser();
-  const workspace = await currentWorkspace();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
