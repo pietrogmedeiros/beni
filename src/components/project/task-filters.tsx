@@ -29,6 +29,8 @@ export type TaskFilterState = {
   priorities: string[];
   tags: string[];
   types: string[];
+  /** Ids de status (a etapa da coluna). Vazio = todas. */
+  statuses: string[];
   showDone: boolean;
   groupBy: GroupBy;
   sortBy: SortBy;
@@ -40,6 +42,7 @@ export const defaultFilters: TaskFilterState = {
   priorities: [],
   tags: [],
   types: [],
+  statuses: [],
   showDone: true,
   groupBy: "status",
   sortBy: "manual",
@@ -56,7 +59,10 @@ export function useTaskFilters(initial?: Partial<TaskFilterState>) {
     value: TaskFilterState[K],
   ) => setFilters((f) => ({ ...f, [key]: value }));
 
-  const toggle = (key: "assignees" | "priorities" | "tags" | "types", id: string) =>
+  const toggle = (
+    key: "assignees" | "priorities" | "tags" | "types" | "statuses",
+    id: string,
+  ) =>
     setFilters((f) => ({
       ...f,
       [key]: f[key].includes(id)
@@ -78,6 +84,7 @@ export function applyFilters(tasks: TaskDTO[], f: TaskFilterState) {
       if (!f.assignees.includes(id)) return false;
     }
     if (f.priorities.length && !f.priorities.includes(t.priority)) return false;
+    if (f.statuses.length && !f.statuses.includes(t.statusId)) return false;
     if (f.types.length && !f.types.includes(t.type)) return false;
     if (f.tags.length && !t.tags.some((tag) => f.tags.includes(tag.id)))
       return false;
@@ -120,14 +127,26 @@ export function TaskFilterBar({
   members,
   tags,
   showGrouping = true,
+  statuses = [],
   extra,
 }: {
   filters: TaskFilterState;
   set: <K extends keyof TaskFilterState>(k: K, v: TaskFilterState[K]) => void;
-  toggle: (k: "assignees" | "priorities" | "tags" | "types", id: string) => void;
+  toggle: (
+    k: "assignees" | "priorities" | "tags" | "types" | "statuses",
+    id: string,
+  ) => void;
   reset: () => void;
   members: UserDTO[];
   tags: { id: string; name: string; color: string }[];
+  /**
+   * Etapas oferecidas no filtro.
+   *
+   * Vem de fora, e não de um contexto, porque o Gantt público não tem
+   * contexto nenhum. Quem chama costuma derivar das próprias tarefas: assim a
+   * lista nunca oferece uma etapa que não devolveria nada.
+   */
+  statuses?: { id: string; name: string; color: string }[];
   showGrouping?: boolean;
   extra?: React.ReactNode;
 }) {
@@ -137,6 +156,7 @@ export function TaskFilterBar({
       filters.priorities.length +
       filters.tags.length +
       filters.types.length +
+      filters.statuses.length +
       (filters.showDone ? 0 : 1),
     [filters],
   );
@@ -183,6 +203,28 @@ export function TaskFilterBar({
               </span>
             </DropdownMenuCheckboxItem>
           ))}
+
+          {statuses.length > 0 && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Etapa</DropdownMenuLabel>
+              {statuses.map((st) => (
+                <DropdownMenuCheckboxItem
+                  key={st.id}
+                  checked={filters.statuses.includes(st.id)}
+                  onCheckedChange={() => toggle("statuses", st.id)}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="size-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: st.color }}
+                    />
+                    {st.name}
+                  </span>
+                </DropdownMenuCheckboxItem>
+              ))}
+            </>
+          )}
 
           <DropdownMenuSeparator />
           <DropdownMenuLabel>Prioridade</DropdownMenuLabel>

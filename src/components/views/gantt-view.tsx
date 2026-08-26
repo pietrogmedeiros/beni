@@ -64,6 +64,36 @@ export function GanttView({
   const members = app?.members ?? [];
   const tags = app?.tags ?? [];
   const openTask = onOpenTask ?? app?.openTask ?? (() => {});
+
+  /**
+   * Etapas oferecidas no filtro, tiradas das próprias tarefas.
+   *
+   * O Gantt público não tem contexto do app, então não há de onde puxar a
+   * lista do projeto. Derivar das tarefas resolve os dois casos com o mesmo
+   * código e tem uma vantagem: nunca oferece uma etapa vazia, que só
+   * devolveria lista em branco.
+   *
+   * A ordem segue o fluxo do quadro (do backlog ao concluído) e não a ordem
+   * alfabética, porque é assim que a etapa é lida.
+   */
+  const etapas = useMemo(() => {
+    const ordem = ["BACKLOG", "TODO", "IN_PROGRESS", "DONE", "CANCELED"];
+    const vistas = new Map<string, { id: string; name: string; color: string; cat: string }>();
+    for (const t of initialTasks) {
+      if (t.statusId && !vistas.has(t.statusId)) {
+        vistas.set(t.statusId, {
+          id: t.statusId,
+          name: t.statusName,
+          color: t.statusColor,
+          cat: t.statusCategory,
+        });
+      }
+    }
+    return [...vistas.values()].sort(
+      (a, b) =>
+        ordem.indexOf(a.cat) - ordem.indexOf(b.cat) || a.name.localeCompare(b.name),
+    );
+  }, [initialTasks]);
   const router = useRouter();
   const { filters, set, toggle, reset } = useTaskFilters({ groupBy: "none" });
   const [zoom, setZoom] = useState<Zoom>("week");
@@ -271,6 +301,7 @@ export function GanttView({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="px-4">
         <TaskFilterBar
+          statuses={etapas}
           filters={filters}
           set={set}
           toggle={toggle}
