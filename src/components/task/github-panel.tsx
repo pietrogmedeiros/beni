@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -75,12 +77,14 @@ const STATE_STYLE: Record<string, { label: string; className: string }> = {
 };
 
 export function GithubPanel({
+  projectId,
   taskId,
   taskKey,
   taskTitle,
   links,
   onRefresh,
 }: {
+  projectId: string;
   taskId: string;
   taskKey: string;
   taskTitle: string;
@@ -134,10 +138,22 @@ export function GithubPanel({
         <GithubIcon className="mx-auto mb-2 size-6 text-muted-foreground" />
         <p className="text-sm font-medium">Nenhum repositório vinculado</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Conecte um repositório em{" "}
-          <strong className="font-medium">Configurar projeto → GitHub</strong>{" "}
-          para vincular issues e pull requests às tarefas.
+          Vincule um repositório ao projeto para conectar issues e pull requests
+          às tarefas.
         </p>
+        {/*
+          Antes esta mensagem descrevia o caminho ("Configurar projeto →
+          GitHub") e a pessoa tinha de encontrá-lo sozinha. Descrever um
+          caminho é pedir que o outro faça o trajeto; o botão faz.
+        */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-4"
+          render={<Link href={`/p/${projectId}/settings`} />}
+        >
+          Escolher repositório
+        </Button>
       </div>
     );
   }

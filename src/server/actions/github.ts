@@ -307,17 +307,23 @@ export async function syncGithubLinks(taskId: string) {
  */
 export async function listarRepositoriosDaConta(): Promise<{
   repos: RepoDaConta[];
+  /** Há token configurado? Sem isto a tela não sabe distinguir "conta não
+   *  ligada" de "ligada e sem repositório", e as duas apareceriam igual: em
+   *  branco. Foi exatamente essa ambiguidade que fez parecer que a
+   *  funcionalidade não tinha subido. */
+  temToken: boolean;
   erro: string | null;
 }> {
   await exigirMembroDoWorkspace();
   const token = await workspaceToken();
-  if (!token) return { repos: [], erro: null };
+  if (!token) return { repos: [], temToken: false, erro: null };
 
   try {
-    return { repos: await listarReposDaConta(token), erro: null };
+    return { repos: await listarReposDaConta(token), temToken: true, erro: null };
   } catch (e) {
     return {
       repos: [],
+      temToken: true,
       erro:
         e instanceof GithubError
           ? e.message

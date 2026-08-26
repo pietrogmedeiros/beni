@@ -42,6 +42,8 @@ export function GithubRepos({
   const [filtro, setFiltro] = useState("");
   const [daConta, setDaConta] = useState<RepoDaConta[]>([]);
   const [erroLista, setErroLista] = useState<string | null>(null);
+  const [temToken, setTemToken] = useState(false);
+  const [carregando, setCarregando] = useState(true);
   const [pending, startTransition] = useTransition();
 
   // a lista chega depois da montagem: a tela de configurações não deve esperar
@@ -52,6 +54,8 @@ export function GithubRepos({
       if (!vivo) return;
       setDaConta(r.repos);
       setErroLista(r.erro);
+      setTemToken(r.temToken);
+      setCarregando(false);
     });
     return () => {
       vivo = false;
@@ -206,6 +210,14 @@ export function GithubRepos({
             )}
           </ul>
         </div>
+      )}
+
+      {temToken && !carregando && !erroLista && daConta.length === 0 && (
+        <p className="mb-2 rounded-lg border bg-muted/40 p-2.5 text-xs leading-relaxed text-muted-foreground">
+          A conta está ligada, mas o token não alcança nenhum repositório. Se os
+          seus são privados, ele precisa do escopo <code>repo</code>. Você
+          também pode vincular digitando o nome abaixo.
+        </p>
       )}
 
       {erroLista && (

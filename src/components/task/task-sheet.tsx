@@ -510,6 +510,7 @@ function TaskSheetBody({
             {/* GitHub */}
             <TabsContent value="github" className="mt-3">
               <GithubPanel
+                projectId={task.projectId}
                 taskId={task.id}
                 taskKey={`${task.projectKey}-${task.number}`}
                 taskTitle={task.title}
