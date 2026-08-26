@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -78,6 +78,7 @@ const STATE_STYLE: Record<string, { label: string; className: string }> = {
 
 export function GithubPanel({
   projectId,
+  onSair,
   taskId,
   taskKey,
   taskTitle,
@@ -85,12 +86,15 @@ export function GithubPanel({
   onRefresh,
 }: {
   projectId: string;
+  /** Fecha a folha da tarefa antes de sair dela. */
+  onSair?: () => void;
   taskId: string;
   taskKey: string;
   taskTitle: string;
   links: GithubLinkDTO[];
   onRefresh: () => Promise<void>;
 }) {
+  const router = useRouter();
   const [repos, setRepos] = useState<RepoOption[] | null>(null);
   const [repoId, setRepoId] = useState("");
   const [reference, setReference] = useState("");
@@ -146,11 +150,20 @@ export function GithubPanel({
           GitHub") e a pessoa tinha de encontrá-lo sozinha. Descrever um
           caminho é pedir que o outro faça o trajeto; o botão faz.
         */}
+        {/*
+          A tarefa vive numa folha sobreposta. Um link comum navegava a página
+          de baixo e deixava a folha aberta por cima: a pessoa clicava e nada
+          parecia acontecer. Fechar antes de navegar é o que faz o clique ter
+          efeito visível.
+        */}
         <Button
           variant="outline"
           size="sm"
           className="mt-4"
-          render={<Link href={`/p/${projectId}/settings`} />}
+          onClick={() => {
+            onSair?.();
+            router.push(`/p/${projectId}/settings`);
+          }}
         >
           Escolher repositório
         </Button>

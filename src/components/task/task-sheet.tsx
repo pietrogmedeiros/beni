@@ -511,6 +511,7 @@ function TaskSheetBody({
             <TabsContent value="github" className="mt-3">
               <GithubPanel
                 projectId={task.projectId}
+                onSair={onClose}
                 taskId={task.id}
                 taskKey={`${task.projectKey}-${task.number}`}
                 taskTitle={task.title}
