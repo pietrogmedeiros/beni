@@ -303,6 +303,9 @@ export const getTaskDetail = cache(async (taskId: string) => {
     where: { id: taskId, project: await filtroDeProjetos() },
     include: {
       ...taskInclude,
+      parent: {
+        select: { id: true, number: true, title: true },
+      },
       subtasks: {
         include: { status: true, assignee: true },
         orderBy: { order: "asc" },
@@ -329,6 +332,13 @@ export const getTaskDetail = cache(async (taskId: string) => {
 
   return {
     ...toTaskDTO({ ...task, subtasks: task.subtasks }),
+    parent: task.parent
+      ? {
+          id: task.parent.id,
+          number: task.parent.number,
+          title: task.parent.title,
+        }
+      : null,
     subtasks: task.subtasks.map((s) => ({
       id: s.id,
       number: s.number,

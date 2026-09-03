@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { withBase } from "@/lib/base-path";
 import {
+  ArrowLeft,
   CheckCircle2,
   Copy,
   Link2,
@@ -201,6 +202,22 @@ function TaskSheetBody({
     <div className="flex h-full flex-col">
       {/* cabeçalho */}
       <div className="flex items-center gap-2 border-b px-4 py-2.5">
+        {task.parent && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 max-w-48 gap-1.5 px-2 text-xs"
+            onClick={() => openTask(task.parent!.id)}
+            title={`Voltar para ${task.projectKey}-${task.parent.number}: ${task.parent.title}`}
+            aria-label={`Voltar para a tarefa pai ${task.projectKey}-${task.parent.number}`}
+          >
+            <ArrowLeft className="size-4 shrink-0" />
+            <span className="truncate">
+              {task.projectKey}-{task.parent.number}
+            </span>
+          </Button>
+        )}
+
         <span
           className="flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs font-medium"
           style={{
