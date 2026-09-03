@@ -6,23 +6,6 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# ————— dependências completas (para o build) —————
-#
-# Só `package.json` e o lock entram aqui. O `prisma/` ficava nesta etapa porque
-# o `postinstall` do projeto roda `prisma generate` e ele precisa do schema — e
-# o preço disso era alto: **qualquer** mudança de schema ou migration nova
-# invalidava a camada e reinstalava tudo. Medido, era 17,5s de um build
-# incremental de 34s, metade do tempo, gasto para gerar um client que a etapa
-# seguinte gera de novo (`npm run build` é `prisma generate && next build`).
-#
-# `--ignore-scripts` é seguro **aqui** porque estas dependências só servem para
-# compilar. Os quatro pacotes que dependem de script de instalação
-# (@prisma/engines, esbuild, prisma, unrs-resolver) chegam ao runtime pela
-# etapa `tools`, que instala normalmente, com scripts.
-FROM base AS deps
-COPY package.json package-lock.json* ./
-RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
-
 # ————— build —————
 FROM base AS builder
 # O prefixo do endereço entra nos pacotes do navegador: é decidido aqui, não
@@ -30,14 +13,20 @@ FROM base AS builder
 # um caminho.
 ARG BASE_PATH=""
 ENV BASE_PATH=${BASE_PATH}
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # A checagem de tipos é feita antes do push (`tsc --noEmit`), não aqui: ela
 # custava 102s de cada implantação sem acrescentar informação nova.
 ENV SKIP_TYPECHECK=1
 # O cache do Turbopack sobrevive entre implantações e corta o tempo de
 # compilação pela metade — só o que mudou é recompilado.
-RUN --mount=type=cache,target=/app/.next/cache npm run build
+# `node_modules` também fica num cache do BuildKit. Assim ele está disponível
+# durante a compilação, mas não vira uma camada intermediária enorme — gravar
+# essa camada travava o build por dezenas de minutos no servidor do EasyPanel.
+# `npm ci` garante que o conteúdo continua exatamente alinhado ao lockfile.
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/app/node_modules \
+    --mount=type=cache,target=/app/.next/cache \
+    npm ci --ignore-scripts && npm run build
 
 # ————— ferramentas de runtime: só o necessário p/ migrar e semear —————
 FROM base AS tools
